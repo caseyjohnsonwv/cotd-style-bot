@@ -7,7 +7,7 @@ import uuid
 # third party libs
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from discord_interactions import InteractionType, InteractionResponseType, verify_key
+from discord_interactions import verify_key
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi import status as HTTPStatusCode
 from pydantic import BaseModel
@@ -87,19 +87,19 @@ class Commands:
 
 @app.post('/interaction')
 async def interaction(req:Request):
+    j = await req.json()
+    print(j)
     raw_body = await req.body()
     signature = req.headers.get('X-Signature-Ed25519')
     timestamp = req.headers.get('X-Signature-Timestamp')
     if env.VERIFY_SIGNATURES and not verify_key(raw_body, signature, timestamp, DISCORD_PUBLIC_KEY):
         raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid request signature')
     # respond to discord's security tests
-    j = await req.json()
-    if j['type'] == InteractionType.PING:
+    if j['type'] == 1:
         content = json.dumps({'type':1})
         return Response(content=content, status_code=HTTPStatusCode.HTTP_200_OK)
     # handle slash commands
-    elif j['type'] == InteractionType.APPLICATION_COMMAND:
-        print(j)
+    elif j['type'] == 4:
         guild_id = j['guild_id']
         channel_id = j['channel_id']
     return Response(content=json.dumps({'message':'Check app logs'}), status_code=HTTPStatusCode.HTTP_200_OK)
