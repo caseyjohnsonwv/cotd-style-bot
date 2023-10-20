@@ -78,7 +78,7 @@ Simple healthcheck endpoint.
 def root():
     return {
         'current_time' : datetime.utcnow().isoformat(),
-        'subscriptions_count' : subs_table.count(),
+        'subscriptions_count' : len(subs_table.all()),
     }
 
 
