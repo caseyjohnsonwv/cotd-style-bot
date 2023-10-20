@@ -112,7 +112,9 @@ async def interaction(req:Request):
     # handle slash commands
     content = {
         'type': InteractionType.CHAT,
-        'data': 'Oops - something went wrong!', # default message - override this in branches below
+        'data': {
+            'content' : 'Oops - something went wrong!', # default message - override this in branches below
+        }
     }
     if j['type'] == InteractionType.CHAT:
         guild_id = j['guild_id']
