@@ -1,4 +1,5 @@
 apscheduler
+discord-interactions
 fastapi
 python-dotenv
 requests

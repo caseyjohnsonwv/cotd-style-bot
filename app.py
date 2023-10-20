@@ -6,6 +6,7 @@ import uuid
 # third party libs
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from discord_interactions import InteractionType, InteractionResponseType, verify_key
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi import status as HTTPStatusCode
 from pydantic import BaseModel
@@ -16,6 +17,8 @@ import env
 import ref
 
 
+
+DISCORD_PUBLIC_KEY = '59a9c5881d2c0f19456a150b2d9b2b8b203e568164614a2815f7e505c62faa50'
 DISCORD_HEADERS = {'Content-Type':'application/json', 'Authorization':f"Bot {env.DISCORD_BOT_TOKEN}"}
 FETCH_HEADERS = {'User-Agent' : f"kcjwv-icy-cotd-bot-{env.ENV_NAME}"}
 CONTROL_CHARS_PATTERN = '\\$(?:[wnoitsgz]|[0-9A-F]{3})'
@@ -30,6 +33,12 @@ subs_table = db.table('subscriptions')
 
 
 
+# global app settings that can be updated by the /settings route
+class Settings:
+    notifications_enabled = False
+
+
+
 """
 GET '/'
 Simple healthcheck endpoint.
@@ -41,83 +50,107 @@ def root():
 
 
 """
-POST '/enable'
-Turn on notification messages in a specific channel for a specific style.
-
-Parameters:
-*guild_id[int]: Discord server ID where message will be posted
-*channel_id[int]: Discord channel ID where message will be posted
-*style[str]: TMX map style name for which notifications will be pushed
-role_id[int]: Optional Discord role ID for tagging a role in the notification
-
-Response: 201 if successfully created
+GET/PUT '/settings'
+Admin route where global settings can be modified.
+For example, enable/disable notifications to prevent accidental @Role spam on restart.
 """
-class EnableBody(BaseModel):
-    guild_id: int
-    channel_id: int
-    role_id: int | None = None
-    style: str
+@app.get('/settings')
+def get_settings():
+    settings = {k:v for k,v in Settings.__dict__.items() if not callable(v) and not str(k).startswith('__')}
+    return Response(json.dumps(settings), status_code=HTTPStatusCode.HTTP_200_OK)
 
-@app.post('/enable')
-def enable(body:EnableBody):
-    j = {
-        'subscription_id' : str(uuid.uuid4()),
-        'guild_id' : body.guild_id,
-        'channel_id' : body.channel_id,
-        'role_id' : body.role_id,
-        'style' : body.style.lower(),
-    }
-    print(f"/enable: {j}")
-    # enforce uniqueness for combination guild_id + style
-    subs_table.remove((where('guild_id') == j['guild_id']) & (where('style') == j['style']))
-    subs_table.insert(j)
-    return Response(status_code=HTTPStatusCode.HTTP_201_CREATED)
+class SettingsBody(BaseModel):
+    admin_key: str
+    notifications_enabled:bool | None = None
 
-
-
-"""
-POST '/disable'
-Turn off notification messages for a specific style.
-
-Parameters:
-*guild_id[int]: Discord server ID where message will be posted
-*style[str]: TMX map style name for which notifications will be pushed
-
-Response: 200 if found and deleted, 404 if not found
-"""
-class DisableBody(BaseModel):
-    guild_id: int
-    style: str
-
-# discord webhooks are always POST, even if DELETE makes more sense
-@app.post('/disable')
-def disable(body:DisableBody):
-    j = {
-        'guild_id' : body.guild_id,
-        'style' : body.style.lower(),
-    }
-    print(f"/disable: {j}")
-    removed = subs_table.remove((where('guild_id') == j['guild_id']) & (where('style') == j['style']))
-    if len(removed) == 0:
-        raise HTTPException(status_code=HTTPStatusCode.HTTP_404_NOT_FOUND, detail='Notification config not found')
+@app.put('/settings')
+def update_settings(body:SettingsBody):
+    if body.admin_key != env.ADMIN_KEY:
+        raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
+    if body.notifications_enabled:
+        Settings.notifications_enabled = body.notifications_enabled
     return Response(status_code=HTTPStatusCode.HTTP_200_OK)
 
 
 
 """
-GET '/styles'
-Lists all subscribable map styles from TMX.
-
-Parameters: None
-Response: JSONArray of string map style names
+POST '/interaction'
+Endpoint where Discord interactions will be sent.
+https://discord.com/developers/docs/interactions/receiving-and-responding#receiving-an-interaction
 """
-# discord webhooks are always POST, even if GET makes more sense
-@app.post('/styles')
-def get_styles():
-    results = list(ref.TMX_MAP_TAGS.values())
-    results.sort()
-    output = json.dumps(results)
-    return Response(content = output, status_code=HTTPStatusCode.HTTP_200_OK)
+class Commands:
+    DISABLE = 'disable'
+    ENABLE = 'enable'
+    HELP = 'help'
+    STYLES = 'styles'
+
+@app.post('/interaction')
+async def interaction(req:Request):
+    j = await req.json()
+    signature = req.headers.get('X-Signature-Ed25519')
+    timestamp = req.headers.get('X-Signature-Timestamp')
+    if env.ENV_NAME.lower() == 'prod' and not verify_key(j, signature, timestamp, DISCORD_PUBLIC_KEY):
+        return Response(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid request signature')
+    # respond to discord's security tests
+    if j['type'] == InteractionType.PING:
+        content = json.dumps({'type':1})
+        return Response(content=content, status_code=HTTPStatusCode.HTTP_200_OK)
+    # handle slash commands
+    elif j['type'] == InteractionType.APPLICATION_COMMAND:
+        print(j)
+        guild_id = j['guild_id']
+        channel_id = j['channel_id']
+    return Response(content='Check app logs', status_code=HTTPStatusCode.HTTP_200_OK)
+
+
+
+"""
+CRUD util for putting a notification config in the database
+Returns: UUID of created notification
+"""
+def enable(guild_id:int, channel_id:int, role_id:int, style:str) -> str:
+    subscription_id = str(uuid.uuid4())
+    j = {
+        'subscription_id' : subscription_id,
+        'guild_id' : guild_id,
+        'channel_id' : channel_id,
+        'role_id' : role_id,
+        'style' : style.lower(),
+    }
+    # enforce uniqueness for combination guild_id + style
+    subs_table.remove((where('guild_id') == j['guild_id']) & (where('style') == j['style']))
+    subs_table.insert(j)
+    return subscription_id
+
+
+
+"""
+CRUD util for removing a notification from the database
+Returns: number of configs deleted (may be 0, 1, or greater than 1)
+"""
+def disable(guild_id:int, style:str) -> int:
+    j = {
+        'guild_id' : guild_id,
+        'style' : style.lower(),
+    }
+    removed = subs_table.remove((where('guild_id') == j['guild_id']) & (where('style') == j['style']))
+    return len(removed)
+
+
+# """
+# GET '/styles'
+# Lists all subscribable map styles from TMX.
+
+# Parameters: None
+# Response: JSONArray of string map style names
+# """
+# # discord webhooks are always POST, even if GET makes more sense
+# @app.post('/styles')
+# def get_styles():
+#     results = list(ref.TMX_MAP_TAGS.values())
+#     results.sort()
+#     output = json.dumps(results)
+#     return Response(content = output, status_code=HTTPStatusCode.HTTP_200_OK)
 
 
 
@@ -196,10 +229,30 @@ def refresh_job():
     print(output)
     maps_table.remove(where('date') == output['date'])
     maps_table.insert(output)
-    print('Triggering notifications')
-    notify_job_obj.modify(next_run_time = datetime.now())
+    if Settings.notifications_enabled:
+        print('Triggering notifications')
+        notify_job_obj.modify(next_run_time = datetime.now())
+    else:
+        print('Notifications disabled - done')
 
 scheduler.add_job(refresh_job, CronTrigger.from_crontab('0 19 * * *'), retry_on_exception=True)
+
+
+
+"""
+REGISTER_COMMANDS JOB
+One-time task on startup to register slash commands with Discord developer portal
+"""
+def register_commands_job():
+    with open('commands.json', 'r') as f:
+        commands_json = json.load(f)
+    url = f"https://discord.com/api/applications/{env.DISCORD_APP_ID}/commands"
+    for cmd in commands_json:
+        resp = requests.post(url, data=json.dumps(cmd), headers=DISCORD_HEADERS)
+        print(f"Registering command '/{cmd['name']}': {resp.status_code}")
+    print('Done')
+
+scheduler.add_job(register_commands_job) # runs automatically on startup
 
 
 

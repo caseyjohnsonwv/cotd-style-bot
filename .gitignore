@@ -10,4 +10,6 @@ share/
 *.env
 
 *.json
+!commands.json
+
 *.ipynb
