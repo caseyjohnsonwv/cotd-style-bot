@@ -90,18 +90,16 @@ class Commands:
 
 @app.post('/interaction')
 async def interaction(req:Request):
-    j = await req.json()
-    print(j)
     raw_body = await req.body()
     signature = req.headers.get('X-Signature-Ed25519')
     timestamp = req.headers.get('X-Signature-Timestamp')
-    DISCORD_VERIFIER.verify(f'{timestamp}{raw_body}'.encode(), bytes.fromhex(signature))
     if env.VERIFY_SIGNATURES:
         try:
-            VerifyKey(raw_body, signature, timestamp, DISCORD_PUBLIC_KEY)
+            DISCORD_VERIFIER.verify(f"{timestamp}{raw_body}".encode(), bytes.fromhex(signature))
         except BadSignatureError:
             raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid request signature')
     # respond to discord's security tests
+    j = await req.json()
     if j['type'] == 1:
         content = json.dumps({'type':1})
         return Response(content=content, status_code=HTTPStatusCode.HTTP_200_OK)
