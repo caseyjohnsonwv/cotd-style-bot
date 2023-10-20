@@ -12,6 +12,7 @@ from fastapi import status as HTTPStatusCode
 from pydantic import BaseModel
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
+import pytz
 import requests
 from tinydb import TinyDB, where
 # custom code
@@ -26,6 +27,8 @@ DISCORD_VERIFIER = VerifyKey(bytes.fromhex(DISCORD_PUBLIC_KEY))
 DISCORD_HEADERS = {'Content-Type':'application/json', 'Authorization':f"Bot {env.DISCORD_BOT_TOKEN}"}
 FETCH_HEADERS = {'User-Agent' : f"kcjwv-icy-cotd-bot-{env.ENV_NAME}"}
 CONTROL_CHARS_PATTERN = '\\$(?:[wnoitsgz]|[0-9A-F]{3})'
+
+CET_TZ = pytz.timezone('CET')
 
 
 
@@ -49,7 +52,7 @@ Simple healthcheck endpoint.
 """
 @app.get('/')
 def root():
-    return {'current_time' : datetime.now().isoformat()}
+    return {'current_time' : datetime.utcnow().isoformat()}
 
 
 
@@ -247,7 +250,7 @@ def refresh_job():
     maps_table.insert(output)
     if Settings.notifications_enabled:
         print('Triggering notifications')
-        notify_job_obj.modify(next_run_time = datetime.now())
+        notify_job_obj.modify(next_run_time = datetime.now(CET_TZ))
     else:
         print('Notifications disabled - done')
 
@@ -295,7 +298,7 @@ class RefreshBody(AdminBody):
 def refresh(body:RefreshBody):
     if body.admin_key != env.ADMIN_KEY:
         raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
-    refresh_job_obj.modify(next_run_time = datetime.now())
+    refresh_job_obj.modify(next_run_time = datetime.now(CET_TZ))
     content = {'message':'Data refresh triggered'}
     return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_202_ACCEPTED)
 
