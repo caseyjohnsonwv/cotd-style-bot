@@ -109,7 +109,7 @@ async def interaction(req:Request):
     elif j['type'] == 4:
         guild_id = j['guild_id']
         channel_id = j['channel_id']
-    json.dumps({'message':'Check app logs'})
+    content = json.dumps({'message':'Check app logs'})
     return Response(content=content, status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
 
 
