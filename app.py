@@ -76,7 +76,10 @@ Simple healthcheck endpoint.
 """
 @app.get('/')
 def root():
-    return {'current_time' : datetime.utcnow().isoformat()}
+    return {
+        'current_time' : datetime.utcnow().isoformat(),
+        'subscriptions_count' : subs_table.count(),
+    }
 
 
 
