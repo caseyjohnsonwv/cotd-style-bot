@@ -87,12 +87,13 @@ class Commands:
 
 @app.post('/interaction')
 async def interaction(req:Request):
-    j = await req.json()
+    raw_body = await req.body()
     signature = req.headers.get('X-Signature-Ed25519')
     timestamp = req.headers.get('X-Signature-Timestamp')
-    if env.VERIFY_SIGNATURES and not verify_key(json.dumps(j).encode('utf-8'), signature, timestamp, DISCORD_PUBLIC_KEY):
+    if env.VERIFY_SIGNATURES and not verify_key(raw_body, signature, timestamp, DISCORD_PUBLIC_KEY):
         raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid request signature')
     # respond to discord's security tests
+    j = await req.json()
     if j['type'] == InteractionType.PING:
         content = json.dumps({'type':1})
         return Response(content=content, status_code=HTTPStatusCode.HTTP_200_OK)
@@ -254,7 +255,7 @@ def register_commands_job():
         time.sleep(1)
     print('Done')
 
-scheduler.add_job(register_commands_job) # runs automatically on startup
+# scheduler.add_job(register_commands_job) # runs automatically on startup
 
 
 
