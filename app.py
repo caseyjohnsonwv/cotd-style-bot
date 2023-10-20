@@ -11,6 +11,7 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi import status as HTTPStatusCode
 from pydantic import BaseModel
 from nacl.signing import VerifyKey
+from nacl.exceptions import BadSignatureError
 import requests
 from tinydb import TinyDB, where
 # custom code
@@ -95,8 +96,11 @@ async def interaction(req:Request):
     signature = req.headers.get('X-Signature-Ed25519')
     timestamp = req.headers.get('X-Signature-Timestamp')
     DISCORD_VERIFIER.verify(f'{timestamp}{raw_body}'.encode(), bytes.fromhex(signature))
-    if env.VERIFY_SIGNATURES and not VerifyKey(raw_body, signature, timestamp, DISCORD_PUBLIC_KEY):
-        raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid request signature')
+    if env.VERIFY_SIGNATURES:
+        try:
+            VerifyKey(raw_body, signature, timestamp, DISCORD_PUBLIC_KEY)
+        except BadSignatureError:
+            raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid request signature')
     # respond to discord's security tests
     if j['type'] == 1:
         content = json.dumps({'type':1})
