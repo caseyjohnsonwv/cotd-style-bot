@@ -33,7 +33,7 @@ CET_TZ = pytz.timezone('CET')
 
 
 app = FastAPI()
-scheduler = BackgroundScheduler(timezone='CET')
+scheduler = BackgroundScheduler(timezone='CET', job_defaults={'max_instances': 2})
 db = TinyDB(f"./bot_db.{env.ENV_NAME}.json")
 maps_table = db.table('maps')
 subs_table = db.table('subscriptions')
