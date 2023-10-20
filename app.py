@@ -232,14 +232,12 @@ def notify_job():
     tags_lower = [t.lower() for t in map_record['tags']]
     # query subscriptions table
     subscriptions = subs_table.search(where('style').map(lambda s:s.lower()).one_of(tags_lower))
+    print(f"Found {len(subscriptions)} matching subscriptions")
     # build message payloads
     messages = []
     for sub_record in subscriptions:
-        message = f"{sub_record['style'].upper()} COTD: \"{map_record['map_name']}\" by {map_record['author_name']} (AT: {map_record['author_time']})"
+        message = f"<@&{sub_record['role_id']}>\n{sub_record['style'].upper()} COTD: \"{map_record['map_name']}\" by {map_record['author_name']} (AT: {map_record['author_time']})"
         subscription_id = sub_record['subscription_id']
-        role_id = sub_record.get('role_id')
-        if role_id:
-            message = f"<@&{role_id}>\n" + message
         target_url = f"https://discord.com/api/channels/{sub_record['channel_id']}/messages"
         t = (subscription_id, target_url, message)
         messages.append(t)

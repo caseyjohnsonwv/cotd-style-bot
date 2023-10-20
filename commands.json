@@ -23,7 +23,8 @@
             {
                 "name": "role",
                 "description": "Role to be notified",
-                "type": 8
+                "type": 8,
+                "required": true
             }
         ]
     },
@@ -34,7 +35,7 @@
         "options": [
             {
                 "name": "style",
-                "description": "Map style",
+                "description": "Map style (case insensitive)",
                 "type": 3,
                 "required": true
             }
