@@ -91,11 +91,12 @@ class Commands:
 @app.post('/interaction')
 async def interaction(req:Request):
     raw_body = await req.body()
+    body = raw_body.decode('utf-8')
     signature = req.headers.get('X-Signature-Ed25519')
     timestamp = req.headers.get('X-Signature-Timestamp')
     if env.VERIFY_SIGNATURES:
         try:
-            DISCORD_VERIFIER.verify(f"{timestamp}{raw_body}".encode(), bytes.fromhex(signature))
+            DISCORD_VERIFIER.verify(f"{timestamp}{body}".encode(), bytes.fromhex(signature))
         except BadSignatureError:
             raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid request signature')
     # respond to discord's security tests
