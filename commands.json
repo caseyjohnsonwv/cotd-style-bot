@@ -5,6 +5,11 @@
         "description": "Show bot help text"
     },
     {
+        "name": "show",
+        "type": 1,
+        "description": "Show all active subscriptions for this server"
+    },
+    {
         "name": "subscribe",
         "type": 1,
         "description": "Enable COTD notifications in this channel (overwrites existing configuration)",
@@ -18,8 +23,7 @@
             {
                 "name": "role",
                 "description": "Role to be notified",
-                "type": 8,
-                "required": true
+                "type": 8
             }
         ]
     },

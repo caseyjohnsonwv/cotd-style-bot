@@ -104,6 +104,11 @@ class Command:
     HELP = 'help'
     def help():
         pass
+
+
+    SHOW = 'show'
+    def show():
+        pass
     
 
     SUBSCRIBE = 'subscribe'
@@ -173,6 +178,11 @@ async def interaction(req:Request):
 
     if command == Command.HELP:
         help_text = Command.help()
+        message = "Your command worked, but it hasn't been implemented yet"
+
+    elif command == Command.SHOW:
+        subscriptions = Command.show()
+        message = "Your command worked, but it hasn't been implemented yet"
     
     elif command == Command.SUBSCRIBE:
         role_id, style = options.get('role'), options.get('style')
