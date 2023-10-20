@@ -2,6 +2,7 @@
 from datetime import datetime
 import json
 import re
+import time
 import uuid
 # third party libs
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -89,7 +90,7 @@ async def interaction(req:Request):
     j = await req.json()
     signature = req.headers.get('X-Signature-Ed25519')
     timestamp = req.headers.get('X-Signature-Timestamp')
-    if env.VERIFY_SIGNATURES and not verify_key(j, signature, timestamp, DISCORD_PUBLIC_KEY):
+    if env.VERIFY_SIGNATURES and not verify_key(json.dumps(j).encode('utf-8'), signature, timestamp, DISCORD_PUBLIC_KEY):
         return Response(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid request signature')
     # respond to discord's security tests
     if j['type'] == InteractionType.PING:
@@ -250,6 +251,7 @@ def register_commands_job():
     for cmd in commands_json:
         resp = requests.post(url, data=json.dumps(cmd), headers=DISCORD_HEADERS)
         print(f"Registering command '/{cmd['name']}': {resp.status_code}")
+        time.sleep(1)
     print('Done')
 
 scheduler.add_job(register_commands_job) # runs automatically on startup
