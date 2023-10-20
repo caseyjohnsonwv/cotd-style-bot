@@ -94,6 +94,9 @@ async def interaction(req:Request):
     body = raw_body.decode('utf-8')
     signature = req.headers.get('X-Signature-Ed25519')
     timestamp = req.headers.get('X-Signature-Timestamp')
+    print(body)
+    print(signature)
+    print(timestamp)
     if env.VERIFY_SIGNATURES:
         try:
             DISCORD_VERIFIER.verify(f"{timestamp}{body}".encode(), bytes.fromhex(signature))
