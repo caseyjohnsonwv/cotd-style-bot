@@ -153,42 +153,41 @@ async def interaction(req:Request):
     message = 'Oops - something went wrong'
 
     # handle slash commands
-    if j.get('data') and j['data']['type'] == InteractionType.CHAT:
-        guild_id = j['guild_id']
-        channel_id = j['channel_id']
-        command = j['data']['name']
-        options = {}
-        if j['data'].get('options'):
-            for option in j['data']['options']:
-                name, value = option['name'], option['value']
-                options[name] = value
+    guild_id = j['guild_id']
+    channel_id = j['channel_id']
+    command = j['data']['name']
+    options = {}
+    if j['data'].get('options'):
+        for option in j['data']['options']:
+            name, value = option['name'], option['value']
+            options[name] = value
 
-        if command == Command.HELP:
-            help_text = Command.help()
-        
-        elif command == Command.SUBSCRIBE:
-            role_id, style = options.get('role'), options.get('style')
-            if not role_id or not style:
-                raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Role and Style are required')
-            subscription_id = Command.subscribe(guild_id, channel_id, role_id, style)
-            print(f"Created subscription {subscription_id} for server {guild_id}")
-            message = f"Successfully subscribed to {style} - notifications will be posted to this channel"
+    if command == Command.HELP:
+        help_text = Command.help()
+    
+    elif command == Command.SUBSCRIBE:
+        role_id, style = options.get('role'), options.get('style')
+        if not role_id or not style:
+            raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Role and Style are required')
+        subscription_id = Command.subscribe(guild_id, channel_id, role_id, style)
+        print(f"Created subscription {subscription_id} for server {guild_id}")
+        message = f"Successfully subscribed to {style} - notifications will be posted to this channel"
 
-        elif command == Command.STYLES:
-            styles_list = Command.styles()
-            styles_fmt = '\n'.join([f"{i+1}. {s}" for i,s in enumerate(styles_list)])
-            message = f"All of the following are valid style names:\n{styles_fmt}"
+    elif command == Command.STYLES:
+        styles_list = Command.styles()
+        styles_fmt = '\n'.join([f"{i+1}. {s}" for i,s in enumerate(styles_list)])
+        message = f"All of the following are valid style names:\n{styles_fmt}"
 
-        elif command == Command.UNSUBSCRIBE:
-            style = options.get('style')
-            if not style:
-                raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Style is required')
-            num_removed = Command.unsubscribe(guild_id, style)
-            print(f"Removed {num_removed} subscriptions for server {guild_id}")
-            if num_removed == 0:
-                message = f"Subscription not found for {style} - nothing to delete"
-            else:
-                message = f"Unsubscribed from {style}"
+    elif command == Command.UNSUBSCRIBE:
+        style = options.get('style')
+        if not style:
+            raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Style is required')
+        num_removed = Command.unsubscribe(guild_id, style)
+        print(f"Removed {num_removed} subscriptions for server {guild_id}")
+        if num_removed == 0:
+            message = f"Subscription not found for {style} - nothing to delete"
+        else:
+            message = f"Unsubscribed from {style}"
 
     # format into discord json and return
     content = {
