@@ -89,7 +89,7 @@ async def interaction(req:Request):
     j = await req.json()
     signature = req.headers.get('X-Signature-Ed25519')
     timestamp = req.headers.get('X-Signature-Timestamp')
-    if env.ENV_NAME.lower() == 'prod' and not verify_key(j, signature, timestamp, DISCORD_PUBLIC_KEY):
+    if env.VERIFY_SIGNATURES and not verify_key(j, signature, timestamp, DISCORD_PUBLIC_KEY):
         return Response(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid request signature')
     # respond to discord's security tests
     if j['type'] == InteractionType.PING:
