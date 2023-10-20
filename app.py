@@ -102,7 +102,7 @@ async def interaction(req:Request):
         print(j)
         guild_id = j['guild_id']
         channel_id = j['channel_id']
-    return Response(content='Check app logs', status_code=HTTPStatusCode.HTTP_200_OK)
+    return Response(content=json.dumps({'message':'Check app logs'}), status_code=HTTPStatusCode.HTTP_200_OK)
 
 
 
