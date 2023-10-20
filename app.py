@@ -39,7 +39,7 @@ subs_table = db.table('subscriptions')
 
 # global app settings that can be updated by the /settings route
 class Settings:
-    notifications_enabled = False
+    notifications_enabled = env.NOTIFICATIONS_ENABLED_DEFAULT
 
 
 
@@ -50,35 +50,6 @@ Simple healthcheck endpoint.
 @app.get('/')
 def root():
     return {'current_time' : datetime.now().isoformat()}
-
-
-
-"""
-GET/PUT '/settings'
-Admin route where global settings can be modified.
-For example, enable/disable notifications to prevent accidental @Role spam on restart.
-"""
-@app.get('/settings')
-def get_settings():
-    settings = {k:v for k,v in Settings.__dict__.items() if not callable(v) and not str(k).startswith('__')}
-    return Response(json.dumps(settings), status_code=HTTPStatusCode.HTTP_200_OK)
-
-class SettingsBody(BaseModel):
-    admin_key: str
-    notifications_enabled:bool | None = None
-
-@app.put('/settings')
-def update_settings(body:SettingsBody):
-    if body.admin_key != env.ADMIN_KEY:
-        raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
-    if body.notifications_enabled:
-        Settings.notifications_enabled = body.notifications_enabled
-    return Response(status_code=HTTPStatusCode.HTTP_200_OK)
-
-
-
-
-
 
 
 
@@ -280,25 +251,53 @@ def refresh_job():
     else:
         print('Notifications disabled - done')
 
-scheduler.add_job(refresh_job, CronTrigger.from_crontab('0 19 * * *'), retry_on_exception=True)
+refresh_job_obj = scheduler.add_job(refresh_job, CronTrigger.from_crontab('0 19 * * *'), retry_on_exception=True)
+
+
+# admin routes below
+
+
+class AdminBody(BaseModel):
+    admin_key: str
+
+
+"""
+GET/PUT '/settings'
+Admin route where global settings can be modified.
+For example, enable/disable notifications to prevent accidental @Role spam on restart.
+"""
+@app.get('/settings')
+def get_settings():
+    settings = {k:v for k,v in Settings.__dict__.items() if not callable(v) and not str(k).startswith('__')}
+    return Response(json.dumps(settings), status_code=HTTPStatusCode.HTTP_200_OK)
+
+class SettingsBody(AdminBody):
+    notifications_enabled:bool | None = None
+
+@app.put('/settings')
+def update_settings(body:SettingsBody):
+    if body.admin_key != env.ADMIN_KEY:
+        raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
+    if body.notifications_enabled:
+        Settings.notifications_enabled = body.notifications_enabled
+    return Response(status_code=HTTPStatusCode.HTTP_200_OK)
 
 
 
 """
-REGISTER_COMMANDS JOB
-One-time task on startup to register slash commands with Discord developer portal
+POST '/refresh'
+Admin route to trigger data refresh & notifications, if enabled.
 """
-def register_commands_job():
-    with open('commands.json', 'r') as f:
-        commands_json = json.load(f)
-    url = f"https://discord.com/api/applications/{env.DISCORD_APP_ID}/commands"
-    for cmd in commands_json:
-        resp = requests.post(url, data=json.dumps(cmd), headers=DISCORD_HEADERS)
-        print(f"Registering command '/{cmd['name']}': {resp.status_code}")
-        time.sleep(1)
-    print('Done')
+class RefreshBody(AdminBody):
+    pass
 
-# scheduler.add_job(register_commands_job) # runs automatically on startup
+@app.post('/refresh')
+def refresh(body:RefreshBody):
+    if body.admin_key != env.ADMIN_KEY:
+        raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
+    refresh_job_obj.modify(next_run_time = datetime.now())
+    content = {'message':'Data refresh triggered'}
+    return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_202_ACCEPTED)
 
 
 
