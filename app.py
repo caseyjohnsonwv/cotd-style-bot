@@ -145,7 +145,6 @@ async def interaction(req:Request):
         except BadSignatureError:
             raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid request signature')
     j = await req.json()
-    print(j)
     if j['type'] == InteractionType.PING:
         content = {'type':InteractionType.PING}
         return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
@@ -154,7 +153,7 @@ async def interaction(req:Request):
     message = 'Oops - something went wrong'
 
     # handle slash commands
-    if j['type'] == InteractionType.CHAT:
+    if j.get('data') and j['data']['type'] == InteractionType.CHAT:
         guild_id = j['guild_id']
         channel_id = j['channel_id']
         command = j['data']['name']
