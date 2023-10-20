@@ -250,7 +250,7 @@ def refresh_job():
     maps_table.insert(output)
     if Settings.notifications_enabled:
         print('Triggering notifications')
-        notify_job_obj.modify(next_run_time = datetime.now(CET_TZ))
+        refresh_job_obj.modify(next_run_time = datetime.now(CET_TZ))
     else:
         print('Notifications disabled - done')
 
