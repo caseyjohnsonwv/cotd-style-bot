@@ -82,7 +82,11 @@ POST '/interaction'
 Endpoint where Discord interactions will be sent.
 https://discord.com/developers/docs/interactions/receiving-and-responding#receiving-an-interaction
 """
-class Commands:
+class InteractionType:
+    PING = 1
+    CHAT = 4
+
+class Command:
     DISABLE = 'disable'
     ENABLE = 'enable'
     HELP = 'help'
@@ -102,15 +106,27 @@ async def interaction(req:Request):
             raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid request signature')
     j = await req.json()
     print(j)
-    if j['type'] == 1:
-        content = json.dumps({'type':1})
-        return Response(content=content, status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
+    if j['type'] == InteractionType.PING:
+        content = {'type':InteractionType.PING}
+        return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
     # handle slash commands
-    elif j['type'] == 4:
+    content = {
+        'type': InteractionType.CHAT,
+        'data': 'Oops - something went wrong!', # default message - override this in branches below
+    }
+    if j['type'] == InteractionType.CHAT:
         guild_id = j['guild_id']
         channel_id = j['channel_id']
-    content = json.dumps({'message':'Check app logs'})
-    return Response(content=content, status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
+        command = j['data']['name']
+        if command == Command.DISABLE:
+            pass
+        elif command == Command.ENABLE:
+            pass
+        elif command == Command.HELP:
+            pass
+        elif command == Command.STYLES:
+            pass
+    return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
 
 
 
