@@ -94,9 +94,6 @@ async def interaction(req:Request):
     body = raw_body.decode()
     signature = req.headers.get('X-Signature-Ed25519')
     timestamp = req.headers.get('X-Signature-Timestamp')
-    print(body)
-    print(signature)
-    print(timestamp)
     # respond to discord's security tests
     if env.VERIFY_SIGNATURES:
         try:
@@ -104,13 +101,16 @@ async def interaction(req:Request):
         except BadSignatureError:
             raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid request signature')
     j = await req.json()
+    print(j)
     if j['type'] == 1:
-        return Response(content=json.dumps({'type':1}), status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
+        content = json.dumps({'type':1})
+        return Response(content=content, status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
     # handle slash commands
     elif j['type'] == 4:
         guild_id = j['guild_id']
         channel_id = j['channel_id']
-    return Response(content=json.dumps({'message':'Check app logs'}), status_code=HTTPStatusCode.HTTP_200_OK)
+    json.dumps({'message':'Check app logs'})
+    return Response(content=content, status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
 
 
 
