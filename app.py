@@ -1,5 +1,5 @@
 # standard libs
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import re
 import time
@@ -179,8 +179,11 @@ Scheduled job, invoked by the end of REFRESH JOB like a DAG. Sends style notific
 """
 def notify_job():
     # query maps table
-    today = datetime.strftime(datetime.today(), '%Y-%m-%d')
+    today = datetime.strftime(datetime.now(CET_TZ), '%Y-%m-%d')
+    yesterday = datetime.strftime(datetime.now(CET_TZ) + timedelta(days=-1), '%Y-%m-%d')
     map_record = maps_table.get(where('date') == today)
+    if not map_record:
+        map_record = maps_table.get(where('date') == yesterday)
     tags_lower = [t.lower() for t in map_record['tags']]
     # query subscriptions table
     subscriptions = subs_table.search(where('style').map(lambda s:s.lower()).one_of(tags_lower))
