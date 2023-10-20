@@ -1,4 +1,5 @@
 # standard libs
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 import json
 import re
@@ -13,6 +14,7 @@ from pydantic import BaseModel
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 import pytz
+import redis
 import requests
 from tinydb import TinyDB, where
 # custom code
@@ -24,6 +26,9 @@ import ref
 DISCORD_PUBLIC_KEY = '59a9c5881d2c0f19456a150b2d9b2b8b203e568164614a2815f7e505c62faa50'
 DISCORD_VERIFIER = VerifyKey(bytes.fromhex(DISCORD_PUBLIC_KEY))
 
+REDIS = redis.Redis(host=env.REDIS_HOST, port=env.REDIS_PORT, username=env.REDIS_USERNAME, password=env.REDIS_PASSWORD, decode_responses=True)
+REDIS_KEY = f"bot_db.{env.ENV_NAME}.json"
+
 DISCORD_HEADERS = {'Content-Type':'application/json', 'Authorization':f"Bot {env.DISCORD_BOT_TOKEN}"}
 FETCH_HEADERS = {'User-Agent' : f"kcjwv-icy-cotd-bot-{env.ENV_NAME}"}
 CONTROL_CHARS_PATTERN = '\\$(?:[wnoitsgz]|[0-9A-F]{3})'
@@ -32,11 +37,30 @@ CET_TZ = pytz.timezone('CET')
 
 
 
-app = FastAPI()
-scheduler = BackgroundScheduler(timezone='CET')
-db = TinyDB(f"./bot_db.{env.ENV_NAME}.json")
+db = TinyDB(REDIS_KEY)
 maps_table = db.table('maps')
 subs_table = db.table('subscriptions')
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # startup - load db from redis or local file
+    print('Loading DB backup')
+    records = REDIS.get(REDIS_KEY)
+    if records:
+        db.insert_multiple(json.loads(records))
+        print('Loaded successfully')
+    # yield - let application run
+    yield
+    # cleanup - export db file back to redis
+    print('Exporting DB backup')
+    records = db.all()
+    REDIS.set(REDIS_KEY, json.dumps(records))
+    print('Exported successfully')
+
+
+
+app = FastAPI(lifespan=lifespan)
+scheduler = BackgroundScheduler(timezone='CET')
 
 
 
@@ -199,6 +223,7 @@ def notify_job():
         t = (subscription_id, target_url, message)
         messages.append(t)
     # push to all subscribers
+    print(f"Pushing {len(messages)} notifications")
     for sub_id, url, msg in messages:
         body = json.dumps({'content' : msg})
         resp = requests.post(url, data=body, headers=DISCORD_HEADERS)
@@ -305,6 +330,26 @@ def refresh(body:RefreshBody):
     refresh_job_obj.modify(next_run_time = datetime.now(CET_TZ))
     content = {'message':'Data refresh triggered'}
     return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_202_ACCEPTED)
+
+
+
+"""
+POST '/reset'
+Admin route to hard reset all subscriptions. Disallowed in production.
+"""
+class ResetBody(AdminBody):
+    pass
+
+@app.post('/reset')
+def reset(body:ResetBody):
+    if body.admin_key != env.ADMIN_KEY:
+        raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
+    if 'prod' in env.ENV_NAME.lower():
+        raise HTTPException(status_code=HTTPStatusCode.HTTP_403_FORBIDDEN, detail='Reset is disallowed in production')
+    REDIS.delete(REDIS_KEY)
+    with open(REDIS_KEY, 'w') as f:
+        json.dump(dict(), f)
+    return Response(status_code=HTTPStatusCode.HTTP_204_NO_CONTENT)
 
 
 
