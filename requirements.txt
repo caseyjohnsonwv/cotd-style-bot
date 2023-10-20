@@ -1,6 +1,7 @@
 apscheduler
 discord-interactions
 fastapi
+pynacl
 python-dotenv
 requests
 tinydb

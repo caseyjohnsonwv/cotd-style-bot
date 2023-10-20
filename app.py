@@ -7,10 +7,10 @@ import uuid
 # third party libs
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from discord_interactions import verify_key
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi import status as HTTPStatusCode
 from pydantic import BaseModel
+from nacl.signing import VerifyKey
 import requests
 from tinydb import TinyDB, where
 # custom code
@@ -20,6 +20,8 @@ import ref
 
 
 DISCORD_PUBLIC_KEY = '59a9c5881d2c0f19456a150b2d9b2b8b203e568164614a2815f7e505c62faa50'
+DISCORD_VERIFIER = VerifyKey(bytes.fromhex(DISCORD_PUBLIC_KEY))
+
 DISCORD_HEADERS = {'Content-Type':'application/json', 'Authorization':f"Bot {env.DISCORD_BOT_TOKEN}"}
 FETCH_HEADERS = {'User-Agent' : f"kcjwv-icy-cotd-bot-{env.ENV_NAME}"}
 CONTROL_CHARS_PATTERN = '\\$(?:[wnoitsgz]|[0-9A-F]{3})'
@@ -92,7 +94,8 @@ async def interaction(req:Request):
     raw_body = await req.body()
     signature = req.headers.get('X-Signature-Ed25519')
     timestamp = req.headers.get('X-Signature-Timestamp')
-    if env.VERIFY_SIGNATURES and not verify_key(raw_body, signature, timestamp, DISCORD_PUBLIC_KEY):
+    DISCORD_VERIFIER.verify(f'{timestamp}{raw_body}'.encode(), bytes.fromhex(signature))
+    if env.VERIFY_SIGNATURES and not VerifyKey(raw_body, signature, timestamp, DISCORD_PUBLIC_KEY):
         raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid request signature')
     # respond to discord's security tests
     if j['type'] == 1:
