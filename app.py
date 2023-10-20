@@ -27,7 +27,7 @@ DISCORD_PUBLIC_KEY = '59a9c5881d2c0f19456a150b2d9b2b8b203e568164614a2815f7e505c6
 DISCORD_VERIFIER = VerifyKey(bytes.fromhex(DISCORD_PUBLIC_KEY))
 
 REDIS = redis.Redis(host=env.REDIS_HOST, port=env.REDIS_PORT, username=env.REDIS_USERNAME, password=env.REDIS_PASSWORD, decode_responses=True)
-REDIS_KEY = f"bot_db.{env.ENV_NAME}.json"
+REDIS_KEY = f"bot.{env.ENV_NAME}.db"
 
 DISCORD_HEADERS = {'Content-Type':'application/json', 'Authorization':f"Bot {env.DISCORD_BOT_TOKEN}"}
 FETCH_HEADERS = {'User-Agent' : f"kcjwv-icy-cotd-bot-{env.ENV_NAME}"}
@@ -45,17 +45,25 @@ subs_table = db.table('subscriptions')
 async def lifespan(app: FastAPI):
     # startup - load db from redis or local file
     print('Loading DB backup')
-    records = REDIS.get(REDIS_KEY)
-    if records:
-        db.insert_multiple(json.loads(records))
-        print('Loaded successfully')
+    maps = REDIS.get(f"{REDIS_KEY}:maps")
+    subs = REDIS.get(f"{REDIS_KEY}:subs")
+    if maps:
+        maps_table.insert_multiple(json.loads(maps))
+        print('Loaded maps successfully')
+    if subs:
+        subs_table.insert_multiple(json.loads(subs))
+        print('Loaded subscriptions successfully')
     # yield - let application run
     yield
     # cleanup - export db file back to redis
     print('Exporting DB backup')
-    records = db.all()
-    REDIS.set(REDIS_KEY, json.dumps(records))
+    maps = maps_table.all()
+    subs = subs_table.all()
+    REDIS.set(f"{REDIS_KEY}:maps", json.dumps(maps))
+    REDIS.set(f"{REDIS_KEY}:subs", json.dumps(subs))
     print('Exported successfully')
+    with open(REDIS_KEY, 'w') as f:
+        pass
 
 
 
@@ -287,6 +295,7 @@ def refresh_job():
         print('Notifications disabled - done')
 
 refresh_job_obj = scheduler.add_job(refresh_job, CronTrigger.from_crontab('0 19 * * *'), retry_on_exception=True)
+
 
 
 # admin routes below

@@ -9,7 +9,6 @@ share/
 *.cfg
 *.env
 
-*.json
-!commands.json
+*.db
 
 *.ipynb
