@@ -5,7 +5,7 @@
         "description": "Show bot help text"
     },
     {
-        "name": "enable",
+        "name": "subscribe",
         "type": 1,
         "description": "Enable COTD notifications in this channel (overwrites existing configuration)",
         "options": [
@@ -24,7 +24,7 @@
         ]
     },
     {
-        "name": "disable",
+        "name": "unsubscribe",
         "type": 1,
         "description": "Disable COTD notifications for a specific map style",
         "options": [

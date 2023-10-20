@@ -77,6 +77,11 @@ def update_settings(body:SettingsBody):
 
 
 
+
+
+
+
+
 """
 POST '/interaction'
 Endpoint where Discord interactions will be sent.
@@ -87,10 +92,44 @@ class InteractionType:
     CHAT = 4
 
 class Command:
-    DISABLE = 'disable'
-    ENABLE = 'enable'
     HELP = 'help'
+    def help():
+        pass
+    
+
+    SUBSCRIBE = 'subscribe'
+    def subscribe(guild_id:int, channel_id:int, role_id:int, style:str) -> str:
+        subscription_id = str(uuid.uuid4())
+        j = {
+            'subscription_id' : subscription_id,
+            'guild_id' : guild_id,
+            'channel_id' : channel_id,
+            'role_id' : role_id,
+            'style' : style.lower(),
+        }
+        # enforce uniqueness for combination guild_id + style
+        subs_table.remove((where('guild_id') == j['guild_id']) & (where('style') == j['style']))
+        subs_table.insert(j)
+        return subscription_id
+
+
     STYLES = 'styles'
+    def styles():
+        results = list(ref.TMX_MAP_TAGS.values())
+        results.sort()
+        return results
+    
+
+    UNSUBSCRIBE = 'unsubscribe'
+    def unsubscribe(guild_id:int, style:str) -> int:
+        j = {
+            'guild_id' : guild_id,
+            'style' : style.lower(),
+        }
+        removed = subs_table.remove((where('guild_id') == j['guild_id']) & (where('style') == j['style']))
+        return len(removed)
+
+
 
 @app.post('/interaction')
 async def interaction(req:Request):
@@ -98,6 +137,7 @@ async def interaction(req:Request):
     body = raw_body.decode()
     signature = req.headers.get('X-Signature-Ed25519')
     timestamp = req.headers.get('X-Signature-Timestamp')
+
     # respond to discord's security tests
     if env.VERIFY_SIGNATURES:
         try:
@@ -109,77 +149,56 @@ async def interaction(req:Request):
     if j['type'] == InteractionType.PING:
         content = {'type':InteractionType.PING}
         return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
+    
+    # set up default message
+    message = 'Oops - something went wrong'
+
     # handle slash commands
-    content = {
-        'type': InteractionType.CHAT,
-        'data': {
-            'content' : 'Oops - something went wrong!', # default message - override this in branches below
-        }
-    }
     if j['type'] == InteractionType.CHAT:
         guild_id = j['guild_id']
         channel_id = j['channel_id']
         command = j['data']['name']
-        if command == Command.DISABLE:
-            pass
-        elif command == Command.ENABLE:
-            pass
-        elif command == Command.HELP:
-            pass
+        options = {}
+        if j['data'].get('options'):
+            for option in j['data']['options']:
+                name, value = option['name'], option['value']
+                options[name] = value
+
+        if command == Command.HELP:
+            help_text = Command.help()
+        
+        elif command == Command.SUBSCRIBE:
+            role_id, style = options.get('role'), options.get('style')
+            if not role_id or not style:
+                raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Role and Style are required')
+            subscription_id = Command.subscribe(guild_id, channel_id, role_id, style)
+            print(f"Created subscription {subscription_id} for server {guild_id}")
+            message = f"Successfully subscribed to {style} - notifications will be posted to this channel"
+
         elif command == Command.STYLES:
-            pass
+            styles_list = Command.styles()
+            styles_fmt = '\n'.join([f"{i+1}. {s}" for i,s in enumerate(styles_list)])
+            message = f"All of the following are valid style names:\n{styles_fmt}"
+
+        elif command == Command.UNSUBSCRIBE:
+            style = options.get('style')
+            if not style:
+                raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Style is required')
+            num_removed = Command.unsubscribe(guild_id, style)
+            print(f"Removed {num_removed} subscriptions for server {guild_id}")
+            if num_removed == 0:
+                message = f"Subscription not found for {style} - nothing to delete"
+            else:
+                message = f"Unsubscribed from {style}"
+
+    # format into discord json and return
+    content = {
+        'type': InteractionType.CHAT,
+        'data': {
+            'content' : message,
+        }
+    }
     return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
-
-
-
-"""
-CRUD util for putting a notification config in the database
-Returns: UUID of created notification
-"""
-def enable(guild_id:int, channel_id:int, role_id:int, style:str) -> str:
-    subscription_id = str(uuid.uuid4())
-    j = {
-        'subscription_id' : subscription_id,
-        'guild_id' : guild_id,
-        'channel_id' : channel_id,
-        'role_id' : role_id,
-        'style' : style.lower(),
-    }
-    # enforce uniqueness for combination guild_id + style
-    subs_table.remove((where('guild_id') == j['guild_id']) & (where('style') == j['style']))
-    subs_table.insert(j)
-    return subscription_id
-
-
-
-"""
-CRUD util for removing a notification from the database
-Returns: number of configs deleted (may be 0, 1, or greater than 1)
-"""
-def disable(guild_id:int, style:str) -> int:
-    j = {
-        'guild_id' : guild_id,
-        'style' : style.lower(),
-    }
-    removed = subs_table.remove((where('guild_id') == j['guild_id']) & (where('style') == j['style']))
-    return len(removed)
-
-
-# """
-# GET '/styles'
-# Lists all subscribable map styles from TMX.
-
-# Parameters: None
-# Response: JSONArray of string map style names
-# """
-# # discord webhooks are always POST, even if GET makes more sense
-# @app.post('/styles')
-# def get_styles():
-#     results = list(ref.TMX_MAP_TAGS.values())
-#     results.sort()
-#     output = json.dumps(results)
-#     return Response(content = output, status_code=HTTPStatusCode.HTTP_200_OK)
-
 
 
 """
