@@ -42,7 +42,7 @@ def notify_job():
                     'url' : 'https://trackmania.io/#/totd',
                     'fields' : [
                         {
-                            'name' : f'{map_record['map_name']} by {map_record['author_name']} (AT: {map_record['author_time']:.3f})',
+                            'name' : f"{map_record['map_name']} by {map_record['author_name']} (AT: {map_record['author_time']:.3f})",
                             'value' : f"TMX says this map is {' / '.join([t.upper() for t in map_record['tags']])}!",
                         }
                     ],
