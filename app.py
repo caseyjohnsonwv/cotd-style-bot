@@ -33,6 +33,7 @@ DISCORD_HEADERS = {'Content-Type':'application/json', 'Authorization':f"Bot {env
 FETCH_HEADERS = {'User-Agent' : f"kcjwv-icy-cotd-bot-{env.ENV_NAME}"}
 CONTROL_CHARS_PATTERN = '\\$(?:[wnoitsgz]|[0-9A-F]{3})'
 
+SCHEDULER = BackgroundScheduler(timezone='CET')
 CET_TZ = pytz.timezone('CET')
 
 
@@ -68,7 +69,6 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-scheduler = BackgroundScheduler(timezone='CET')
 
 
 
@@ -190,7 +190,7 @@ async def interaction(req:Request):
             raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Role and Style are required')
         subscription_id = Command.subscribe(guild_id, channel_id, role_id, style)
         print(f"Created subscription {subscription_id} for server {guild_id}")
-        message = f"Successfully subscribed to {style} - notifications will be posted to this channel"
+        message = f"Successfully subscribed to {style.upper()} - notifications will be posted to this channel"
 
     elif command == Command.STYLES:
         styles_list = Command.styles()
@@ -204,9 +204,9 @@ async def interaction(req:Request):
         num_removed = Command.unsubscribe(guild_id, style)
         print(f"Removed {num_removed} subscriptions for server {guild_id}")
         if num_removed == 0:
-            message = f"Subscription not found for {style} - nothing to delete"
+            message = f"Subscription not found for {style.upper()} - nothing to delete"
         else:
-            message = f"Unsubscribed from {style}"
+            message = f"Unsubscribed from {style.upper()}"
 
     # format into discord json and return
     content = {
@@ -216,6 +216,7 @@ async def interaction(req:Request):
         }
     }
     return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
+
 
 
 """
@@ -247,8 +248,6 @@ def notify_job():
         body = json.dumps({'content' : msg})
         resp = requests.post(url, data=body, headers=DISCORD_HEADERS)
         print(f"{sub_id}: {resp.status_code}")
-
-notify_job_obj = scheduler.add_job(notify_job, next_run_time=None) # not scheduled - to be invoked by data ingestion's completion
 
 
 
@@ -298,11 +297,9 @@ def refresh_job():
     if Settings.notifications_enabled:
         print('Triggering notifications')
         time.sleep(1)
-        notify_job_obj.modify(next_run_time = datetime.now(CET_TZ))
+        SCHEDULER.add_job(notify_job, next_run_time=datetime.now(CET_TZ))
     else:
         print('Notifications disabled - done')
-
-refresh_job_obj = scheduler.add_job(refresh_job, CronTrigger.from_crontab('0 19 * * *'), retry_on_exception=True)
 
 
 
@@ -347,7 +344,7 @@ class RefreshBody(AdminBody):
 def refresh(body:RefreshBody):
     if body.admin_key != env.ADMIN_KEY:
         raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
-    refresh_job_obj.modify(next_run_time = datetime.now(CET_TZ))
+    SCHEDULER.add_job(refresh_job, next_run_time=datetime.now(CET_TZ))
     content = {'message':'Data refresh triggered'}
     return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_202_ACCEPTED)
 
@@ -374,4 +371,5 @@ def reset(body:ResetBody):
 
 
 # kick off background tasks
-scheduler.start()
+SCHEDULER.add_job(refresh_job, CronTrigger.from_crontab('0 19 * * *'), retry_on_exception=True)
+SCHEDULER.start()
