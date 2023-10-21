@@ -3,7 +3,7 @@ from datetime import datetime
 import json
 from fastapi import FastAPI, Response, status as HTTPStatusCode
 from db import REDIS, REDIS_KEY, maps_table, subs_table
-import routers.admin, routers.interaction
+import admin.router, interaction.router
 
 
 
@@ -45,8 +45,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-app.include_router(routers.admin.router)
-app.include_router(routers.interaction.router)
+app.include_router(admin.router.router)
+app.include_router(interaction.router.router)
 
 @app.get('/')
 def root():
