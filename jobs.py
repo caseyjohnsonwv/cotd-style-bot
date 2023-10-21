@@ -36,7 +36,7 @@ def notify_job():
         message = '\n'.join([
             f"<@&{sub_record['role_id']}>",
             f"Cup of the Day for {map_record['date']} is '{map_record['map_name']}' by {map_record['author_name']} (AT: {map_record['author_time']:.3f})",
-            f"Tags on TMX: {json.dumps(map_record['tags'])}"
+            f"Tags on TMX: {', '.join(map_record['tags'])}"
         ])
         subscription_id = sub_record['subscription_id']
         target_url = f"https://discord.com/api/channels/{sub_record['channel_id']}/messages"
