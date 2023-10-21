@@ -157,6 +157,7 @@ async def interaction(req:Request):
     if len(fields) > 0:
         content['embeds'][0]['fields'] = fields
     else:
+        del content['embeds']
         content['content'] = message
     print(content)
 
