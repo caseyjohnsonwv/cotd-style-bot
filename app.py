@@ -51,6 +51,6 @@ def root():
     content = {
         'current_time_utc' : now.isoformat(),
         'last_restart_time_utc' : LAST_RESTART_TIME.isoformat(),
-        'uptime_seconds' : (now - LAST_RESTART_TIME).total_seconds()//1,
+        'uptime_seconds' : int((now - LAST_RESTART_TIME).total_seconds()),
     }
     return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK)
