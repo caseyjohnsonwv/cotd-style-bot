@@ -105,7 +105,7 @@ async def interaction(req:Request):
 
     if command == Command.HELP:
         help_text = Command.help()
-        message = "##HELP\nYour command worked, but it <b>hasn't</b> been implemented yet"
+        message = "Your command worked, but it hasn't been implemented yet"
 
     elif command == Command.SHOW:
         subscriptions = Command.show()

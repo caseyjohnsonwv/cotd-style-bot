@@ -33,19 +33,33 @@ def notify_job():
     # build message payloads
     messages = []
     for sub_record in subscriptions:
-        message = '\n'.join([
-            f"<@&{sub_record['role_id']}>",
-            f"Cup of the Day for {map_record['date']} is '{map_record['map_name']}' by {map_record['author_name']} (AT: {map_record['author_time']:.3f})",
-            f"Tags on TMX: {', '.join(map_record['tags'])}"
-        ])
+        payload = {
+            'type': 4,
+            'content' : f"<#{sub_record['channel_id']}>",
+            'embeds' : [
+                {
+                    'title' : f"It's Cup of the Day time!",
+                    'url' : 'https://trackmania.io/#/totd',
+                    'fields' : [
+                        {
+                            'name' : f'{map_record['map_name']} by {map_record['author_name']} (AT: {map_record['author_time']:.3f})',
+                            'value' : f"TMX says this map is {' / '.join([t.upper() for t in map_record['tags']])}!",
+                        }
+                    ],
+                    'image' : {
+                        'url' : map_record['thumbnail_url'],
+                    },
+                },
+            ]
+        }
         subscription_id = sub_record['subscription_id']
         target_url = f"https://discord.com/api/channels/{sub_record['channel_id']}/messages"
-        t = (subscription_id, target_url, message)
+        t = (subscription_id, target_url, payload)
         messages.append(t)
     # push to all subscribers
     print(f"Pushing {len(messages)} notifications")
-    for sub_id, url, msg in messages:
-        body = json.dumps({'content' : msg})
+    for sub_id, url, payload in messages:
+        body = json.dumps(payload)
         resp = requests.post(url, data=body, headers=env.DISCORD_HEADERS)
         print(f"{sub_id}: {resp.status_code}")
 
@@ -81,14 +95,16 @@ def refresh_job():
     map_name_cleaned = re.sub(CONTROL_CHARS_PATTERN, '', map_json['name'])
     author_name = map_json['authorplayer']['name']
     author_time = map_json['authorScore'] / 1000
+    thumbnail_url = map_json['thumbnailUrl']
 
     # write to db, which only ever stores one record
     output = {
         'date' : map_date,
         'map_name' : map_name_cleaned,
         'author_name' : author_name,
-        'author_time' : author_time, 
+        'author_time' : author_time,
         'tags' : tags_readable,
+        'thumbnail_url' : thumbnail_url,
         'updated' : refresh_timestamp,
     }
     print(f"New map for {map_date} is '{map_name_cleaned}' by {author_name} (AT: {author_time:.3f}) - {tags_readable}")
