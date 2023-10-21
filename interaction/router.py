@@ -94,6 +94,7 @@ async def interaction(req:Request):
     message = 'Oops - something went wrong'
 
     # handle slash commands
+    print(j)
     guild_id = j['guild_id']
     channel_id = j['channel_id']
     command = j['data']['name']
@@ -131,9 +132,9 @@ async def interaction(req:Request):
         num_removed = Command.unsubscribe(guild_id, style)
         print(f"Removed {num_removed} subscriptions for server {guild_id}")
         if num_removed == 0:
-            message = f"Subscription not found for {style.upper()} - nothing to delete"
+            message = f"Subscription not found for {style.upper()} - nothing to delete!"
         else:
-            message = f"Unsubscribed from {style.upper()}"
+            message = f"Unsubscribed from {style.upper()}!"
 
     # format into discord json and return
     content = {
