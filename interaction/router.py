@@ -94,7 +94,12 @@ async def interaction(req:Request):
     message = 'Oops - something went wrong'
 
     # handle slash commands
-    content = None
+    content = {
+        'type': InteractionType.CHAT,
+        'embeds' : [{'fields' : []}],
+        'allowed_mentions' : [] # suppress @ mentions so we can still pretty print the roles & channels
+    }
+    fields = []
 
     print(j)
     guild_id = j['guild_id']
@@ -120,27 +125,17 @@ async def interaction(req:Request):
             raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Role and Style are required')
         style = style.strip().lower()
         if style not in [s.lower() for s in env.TMX_MAP_TAGS.values()]:
-            raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Invalid Style')
-        subscription_id = Command.subscribe(guild_id, channel_id, role_id, style)
-        print(f"Created subscription {subscription_id} for server {guild_id}")
-        content = {
-            'type': InteractionType.CHAT,
-            'embeds' : [
-                {
-                    'fields' : [
-                        {
-                            'name' : f'Success!',
-                            'value' : f"I am now configured to mention <@&{role_id}> here in <#{channel_id}> when Cup of the Day is {style.upper()}.",
-                        },
-                        {
-                            'name' : 'Reminder:',
-                            'value' : f"I cannot configure the same style more than once per server. If you have previously configured another role or channel for this style, the previous configuration has been overwritten."
-                        }
-                    ],
-                },
-            ],
-            'allowed_mentions' : [] # suppress @ mentions so we can still pretty print the roles & channels
-        }
+            fields = [
+                {'name' : 'Failure!', 'value' : f'"{style.upper()}" is not a valid map style! Use /styles to see all available options.'}
+            ]
+        # any additional error scenarios would go here
+        else:
+            subscription_id = Command.subscribe(guild_id, channel_id, role_id, style)
+            print(f"Created subscription {subscription_id} for server {guild_id}")
+            fields = [
+                {'name' : 'Success!', 'value' : f"I am now configured to mention <@&{role_id}> here in <#{channel_id}> when Cup of the Day is {style.upper()}."},
+                {'name' : 'Reminder:', 'value' : f"If you have previously configured another role or channel for this style, the previous configuration has been overwritten."}
+            ]
 
     elif command == Command.STYLES:
         styles_list = Command.styles()
@@ -159,13 +154,10 @@ async def interaction(req:Request):
             message = f"Unsubscribed from {style.upper()}!"
 
     # preserve legacy functionality while building embeds
-    if not content:
-        content = {
-            'type': InteractionType.CHAT,
-            'data': {
-                'content' : message,
-            }
-        }
+    if len(fields) > 0:
+        content['embeds'][0]['fields'] = fields
+    else:
+        content['content'] = message
 
     # format into json and return
     return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
