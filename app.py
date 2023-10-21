@@ -7,6 +7,10 @@ import routers.admin, routers.interaction
 
 
 
+LAST_RESTART_TIME = datetime.utcnow()
+
+
+
 # lifecycle manager to handle startup/shutdown tasks
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -43,8 +47,10 @@ app.include_router(routers.interaction.router)
 
 @app.get('/')
 def root():
+    now = datetime.utcnow()
     content = {
-        'current_time' : datetime.utcnow().isoformat(),
-        'subscriptions_count' : len(subs_table.all()),
+        'current_time_utc' : now.isoformat(),
+        'last_restart_time_utc' : LAST_RESTART_TIME.isoformat(),
+        'uptime_seconds' : (now - LAST_RESTART_TIME).total_seconds()//1,
     }
     return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK)
