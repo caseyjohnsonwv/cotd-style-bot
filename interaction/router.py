@@ -158,6 +158,7 @@ async def interaction(req:Request):
         content['embeds'][0]['fields'] = fields
     else:
         content['content'] = message
+    print(content)
 
     # format into json and return
     return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
