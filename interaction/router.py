@@ -94,6 +94,8 @@ async def interaction(req:Request):
     message = 'Oops - something went wrong'
 
     # handle slash commands
+    content = None
+
     print(j)
     guild_id = j['guild_id']
     channel_id = j['channel_id']
@@ -121,7 +123,24 @@ async def interaction(req:Request):
             raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Invalid Style')
         subscription_id = Command.subscribe(guild_id, channel_id, role_id, style)
         print(f"Created subscription {subscription_id} for server {guild_id}")
-        message = f"Successfully subscribed to {style.upper()} in this channel!"
+        content = {
+            'type': InteractionType.CHAT,
+            'embeds' : [
+                {
+                    'fields' : [
+                        {
+                            'name' : f'Success!',
+                            'value' : f"I am now configured to mention <@&{role_id}> here in <#{channel_id}> when Cup of the Day is {style.upper()}.",
+                        },
+                        {
+                            'name' : 'Reminder:',
+                            'value' : f"I cannot configure the same style more than once per server. If you have previously configured another role or channel for this style, the previous configuration has been overwritten."
+                        }
+                    ],
+                },
+            ],
+            'allowed_mentions' : [] # suppress @ mentions so we can still pretty print the roles & channels
+        }
 
     elif command == Command.STYLES:
         styles_list = Command.styles()
@@ -139,11 +158,14 @@ async def interaction(req:Request):
         else:
             message = f"Unsubscribed from {style.upper()}!"
 
-    # format into discord json and return
-    content = {
-        'type': InteractionType.CHAT,
-        'data': {
-            'content' : message,
+    # preserve legacy functionality while building embeds
+    if not content:
+        content = {
+            'type': InteractionType.CHAT,
+            'data': {
+                'content' : message,
+            }
         }
-    }
+
+    # format into json and return
     return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
