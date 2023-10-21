@@ -35,7 +35,7 @@ def notify_job():
     for sub_record in subscriptions:
         payload = {
             'type': 4,
-            'content' : f"<#{sub_record['channel_id']}>",
+            'content' : f"<@&{sub_record['role_id']}>",
             'embeds' : [
                 {
                     'title' : f"It's Cup of the Day time!",
