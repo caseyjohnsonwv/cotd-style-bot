@@ -55,6 +55,14 @@ def refresh_maps(body:AdminBody):
     content = {'message':'Data refresh triggered'}
     return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_202_ACCEPTED)
 
+@router.delete('/maps')
+def delete_maps(body:AdminBody):
+    if body.admin_key != env.ADMIN_KEY:
+        raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
+    maps_table.truncate()
+    REDIS.delete(f"{REDIS_KEY}:maps")
+    return Response(status_code=HTTPStatusCode.HTTP_204_NO_CONTENT)
+
 """
 GET/DELETE '/admin/subscriptions'
 Admin route to show or truncate subscriptions. (Note: truncate disallowed in production)
@@ -71,7 +79,7 @@ def delete_subscriptions(body:AdminBody):
         raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
     if 'prod' in env.ENV_NAME.lower():
         raise HTTPException(status_code=HTTPStatusCode.HTTP_405_METHOD_NOT_ALLOWED, detail='DELETE is disallowed in production')
-    REDIS.delete(REDIS_KEY)
+    REDIS.delete(f"{REDIS_KEY}:subs")
     with open(REDIS_KEY, 'w') as f:
         json.dump(dict(), f)
     return Response(status_code=HTTPStatusCode.HTTP_204_NO_CONTENT)

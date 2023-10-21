@@ -26,7 +26,10 @@ async def lifespan(app: FastAPI):
         subs_table.insert_multiple(json.loads(subs))
         print('Loaded subscriptions successfully')
 
-    # yield - let application run
+    # delete data from redis to avoid privacy implications
+    # then yield - let application run
+    REDIS.delete(f"{REDIS_KEY}:maps")
+    REDIS.delete(f"{REDIS_KEY}:subs")
     yield
 
     # cleanup - export db file back to redis
