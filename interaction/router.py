@@ -116,6 +116,9 @@ async def interaction(req:Request):
         role_id, style = options.get('role'), options.get('style')
         if not role_id or not style:
             raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Role and Style are required')
+        style = style.strip().lower()
+        if style not in [s.lower() for s in env.TMX_MAP_TAGS.values()]:
+            raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Invalid Style')
         subscription_id = Command.subscribe(guild_id, channel_id, role_id, style)
         print(f"Created subscription {subscription_id} for server {guild_id}")
         message = f"Successfully subscribed to {style.upper()} in this channel!"
