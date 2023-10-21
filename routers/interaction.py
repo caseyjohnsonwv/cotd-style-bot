@@ -1,15 +1,21 @@
 import json
 import uuid
 from fastapi import APIRouter, Request, Response, HTTPException, status as HTTPStatusCode
+from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 from tinydb import where
 from db import subs_table
 import env
-import ref
-from settings import DISCORD_VERIFIER
+
+
+
+DISCORD_PUBLIC_KEY = '59a9c5881d2c0f19456a150b2d9b2b8b203e568164614a2815f7e505c62faa50'
+DISCORD_VERIFIER = VerifyKey(bytes.fromhex(DISCORD_PUBLIC_KEY))
+
 
 
 router = APIRouter()
+
 
 
 """
@@ -50,7 +56,7 @@ class Command:
 
     STYLES = 'styles'
     def styles():
-        results = list(ref.TMX_MAP_TAGS.values())
+        results = list(env.TMX_MAP_TAGS.values())
         results.sort()
         return results
     
