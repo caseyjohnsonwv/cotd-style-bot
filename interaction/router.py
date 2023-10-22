@@ -89,17 +89,10 @@ async def interaction(req:Request):
     if j['type'] == InteractionType.PING:
         content = {'type':InteractionType.PING}
         return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
-    
-    # set up default message
-    message = 'Oops - something went wrong'
 
     # handle slash commands
-    content = {
-        'type': InteractionType.CHAT,
-        'embeds' : [{'fields' : []}],
-        'allowed_mentions' : [] # suppress @ mentions so we can still pretty print the roles & channels
-    }
     fields = []
+    messages = 'Default message'
 
     print(j)
     guild_id = j['guild_id']
@@ -121,8 +114,10 @@ async def interaction(req:Request):
     
     elif command == Command.SUBSCRIBE:
         role_id, style = options.get('role'), options.get('style')
+        # enforce role & style requirement
         if not role_id or not style:
             raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Role and Style are required')
+        # enforce style validity
         style = style.strip().lower()
         if style not in [s.lower() for s in env.TMX_MAP_TAGS.values()]:
             fields = [
@@ -155,10 +150,13 @@ async def interaction(req:Request):
 
     # preserve legacy functionality while building embeds
     if len(fields) > 0:
-        content['embeds'][0]['fields'] = fields
+        content = {
+            'type' : InteractionType.CHAT,
+            'embeds' : [{'fields' : fields}],
+            'allowed_mentions' : [] # suppress @ mentions so we can still pretty print the roles & channels
+        }
     else:
-        del content['embeds']
-        content['content'] = message
+        content = {'content' : message}
     print(content)
 
     # format into json and return
