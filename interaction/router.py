@@ -132,7 +132,7 @@ async def interaction(req:Request):
             subscription_id = Command.subscribe(guild_id, channel_id, role_id, style)
             print(f"Created subscription {subscription_id} for server {guild_id}")
             fields = [
-                {'name' : 'Success!', 'value' : f"I am now configured to mention <@&{role_id}> here in <#{channel_id}> when Cup of the Day is {style.upper()}."},
+                {'name' : 'Success!', 'value' : f"You are now subscribed to {style.upper()}! I will mention <@&{role_id}> here in <#{channel_id}> when this style becomes Cup of the Day."},
                 {'name' : 'Reminder:', 'value' : f"If you have previously configured another role or channel for this style, the previous configuration has been overwritten."}
             ]
 
