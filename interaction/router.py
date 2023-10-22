@@ -157,6 +157,7 @@ async def interaction(req:Request):
         content['data']['embeds'][0]['fields'] = fields
     else:
         content['data']['content'] = message
+        del content['data']['embeds']
     print(content)
 
     # format into json and return
