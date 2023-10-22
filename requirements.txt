@@ -1,6 +1,9 @@
 apscheduler
+discord-interactions
 fastapi
+pynacl
 python-dotenv
+redis
 requests
 tinydb
 uvicorn

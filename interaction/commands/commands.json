@@ -1,0 +1,49 @@
+[
+    {
+        "name": "help",
+        "type": 1,
+        "description": "Show bot help text"
+    },
+    {
+        "name": "show",
+        "type": 1,
+        "description": "Show all active subscriptions for this server"
+    },
+    {
+        "name": "subscribe",
+        "type": 1,
+        "description": "Enable COTD notifications in this channel (overwrites existing configuration)",
+        "options": [
+            {
+                "name": "style",
+                "description": "Map style",
+                "type": 3,
+                "required": true
+            },
+            {
+                "name": "role",
+                "description": "Role to be notified",
+                "type": 8,
+                "required": true
+            }
+        ]
+    },
+    {
+        "name": "unsubscribe",
+        "type": 1,
+        "description": "Disable COTD notifications for a specific map style",
+        "options": [
+            {
+                "name": "style",
+                "description": "Map style (case insensitive)",
+                "type": 3,
+                "required": true
+            }
+        ]
+    },
+    {
+        "name": "styles",
+        "type": 1,
+        "description": "List all subscribable map styles"
+    }
+]

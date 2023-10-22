@@ -9,5 +9,6 @@ share/
 *.cfg
 *.env
 
-*.json
+*.db
+
 *.ipynb
