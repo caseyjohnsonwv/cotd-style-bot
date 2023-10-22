@@ -140,8 +140,7 @@ async def interaction(req:Request):
         styles_list = Command.styles()
         styles_fmt = '\n'.join([f"{i+1}. {s}" for i,s in enumerate(styles_list)])
         fields = [
-            {'name' : 'Valid styles:'},
-            {'value' : styles_fmt},
+            {'name' : 'Valid styles:', 'value' : styles_fmt},
         ]
 
     elif command == Command.UNSUBSCRIBE:
