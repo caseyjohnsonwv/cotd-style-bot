@@ -116,5 +116,5 @@ def refresh_job():
         SCHEDULER.add_job(notify_job, next_run_time=datetime.now(CET_TZ))
 
 # kick off background tasks
-SCHEDULER.add_job(refresh_job, CronTrigger.from_crontab('0 19 * * *'), retry_on_exception=True)
+SCHEDULER.add_job(refresh_job, CronTrigger.from_crontab('0 19 * * *', timezone=CET_TZ), retry_on_exception=True)
 SCHEDULER.start()
