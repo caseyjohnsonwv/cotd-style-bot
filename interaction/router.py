@@ -138,8 +138,11 @@ async def interaction(req:Request):
 
     elif command == Command.STYLES:
         styles_list = Command.styles()
-        styles_fmt = '\n'.join([f"{i+1}. {s}" for i,s in enumerate(styles_list)])
-        message = f"All of the following are valid style names:\n{styles_fmt}"
+        styles_fmt = '\n'.join([f"<li>{s}</li>" for s in styles_list])
+        fields = [
+            {'name' : 'All of the following are valid style names:'},
+            {'name' : f"<ol>\n{styles_fmt}\n</ol>"},
+        ]
 
     elif command == Command.UNSUBSCRIBE:
         style = options.get('style')
@@ -148,9 +151,13 @@ async def interaction(req:Request):
         num_removed = Command.unsubscribe(guild_id, style)
         print(f"Removed {num_removed} subscriptions for server {guild_id}")
         if num_removed == 0:
-            message = f"Subscription not found for {style.upper()} - nothing to delete!"
+            fields = [
+                {'name' : 'Failure!', 'value' : f"Subscription not found for {style.upper()} - nothing to delete."},
+            ]
         else:
-            message = f"Unsubscribed from {style.upper()}!"
+            fields = [
+                {'name' : 'Success!', 'value' : f"Unsubscribed from {style.upper()}."},
+            ]
 
     # preserve legacy functionality while building embeds
     if len(fields) > 0:
