@@ -156,7 +156,7 @@ async def interaction(req:Request):
             'allowed_mentions' : [] # suppress @ mentions so we can still pretty print the roles & channels
         }
     else:
-        content = {'content' : message}
+        content = {'type' : InteractionType.CHAT, 'content' : message}
     print(content)
 
     # format into json and return
