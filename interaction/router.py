@@ -146,7 +146,7 @@ async def interaction(req:Request):
         cols = [None]*3
         col_len = sum(divmod(len(styles_fmt), len(cols)))
         for i in range(0, len(styles_fmt), col_len):
-            col = styles_fmt[i*col_len : min((i+1)*col_len, len(styles_fmt))]
+            col = styles_fmt[i*col_len : min(i+col_len, len(styles_fmt))]
             fields.append({'name':'', 'value': '\n'.join(col), 'inline':True})
 
     elif command == Command.UNSUBSCRIBE:
