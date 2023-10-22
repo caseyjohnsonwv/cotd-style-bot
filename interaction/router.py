@@ -93,10 +93,8 @@ async def interaction(req:Request):
     # handle slash commands
     content = {
         'type' : InteractionType.CHAT,
-        'data' : {
-            'embeds' : [{'fields' : []}],
-            'allowed_mentions' : [] # suppress @ mentions so we can still pretty print the roles & channels
-        }
+        'embeds' : [{'fields' : []}],
+        'allowed_mentions' : [] # suppress @ mentions so we can still pretty print the roles & channels
     }
     fields = []
 
@@ -156,7 +154,7 @@ async def interaction(req:Request):
 
     # preserve legacy functionality while building embeds
     if len(fields) > 0:
-        content['data']['embeds'][0]['fields'] = fields
+        content['embeds'][0]['fields'] = fields
     else:
         content['data']['content'] = message
     print(content)
