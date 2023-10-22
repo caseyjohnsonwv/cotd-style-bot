@@ -91,8 +91,14 @@ async def interaction(req:Request):
         return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
 
     # handle slash commands
+    content = {
+        'type' : InteractionType.CHAT,
+        'data' : {
+            'embeds' : [{'fields' : []}],
+            'allowed_mentions' : [] # suppress @ mentions so we can still pretty print the roles & channels
+        }
+    }
     fields = []
-    messages = 'Default message'
 
     print(j)
     guild_id = j['guild_id']
@@ -150,13 +156,9 @@ async def interaction(req:Request):
 
     # preserve legacy functionality while building embeds
     if len(fields) > 0:
-        content = {
-            'type' : InteractionType.CHAT,
-            'embeds' : [{'fields' : fields}],
-            'allowed_mentions' : [] # suppress @ mentions so we can still pretty print the roles & channels
-        }
+        content['data']['embeds'][0]['fields'] = fields
     else:
-        content = {'type' : InteractionType.CHAT, 'content' : message}
+        content['data']['content'] = message
     print(content)
 
     # format into json and return
