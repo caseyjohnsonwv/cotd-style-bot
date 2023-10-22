@@ -144,7 +144,7 @@ async def interaction(req:Request):
         styles_list = Command.styles()
         styles_fmt = [f"{i+1}. {s}" for i,s in enumerate(styles_list)]
         # split into columns for condensed tabular display
-        for col in itertools.batched(styles_fmt, 3):
+        for col in itertools.batched(styles_fmt, sum(divmod(len(styles_fmt), 3))):
             fields.append({'name':'', 'value': '\n'.join(col), 'inline':True})
 
     elif command == Command.UNSUBSCRIBE:
