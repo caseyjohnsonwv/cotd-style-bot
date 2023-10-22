@@ -18,15 +18,6 @@ router = APIRouter()
 
 
 
-# itertools.batched(), but heroku isn't on python 3.12 :(
-# splits iterable obj into n equal sized groups
-# used to put styles in 3 columns... that's basically it
-def chunk_list(obj:list, n:int):
-    base, rem = divmod(len(obj), n)
-    return (obj [i*base + min(i,rem) : (i+1)*base + min(i+1,rem)] for i in range(n))
-
-
-
 """
 POST '/interaction'
 Endpoint where Discord interactions will be sent.
@@ -152,8 +143,10 @@ async def interaction(req:Request):
         styles_list = Command.styles()
         styles_fmt = [f"{i+1}. {s}" for i,s in enumerate(styles_list)]
         # split into columns for condensed tabular display
-        # thank god python3.12 added itertools.batched(), this sucks to do manually
-        for col in list(chunk_list(styles_fmt, 3)):
+        cols = [None]*3
+        col_len = sum(divmod(len(styles_fmt), len(cols)))
+        for i in range(0, len(styles_fmt), col_len):
+            col = styles_fmt[i*col_len : min((i+1)*col_len, len(styles_fmt))]
             fields.append({'name':'', 'value': '\n'.join(col), 'inline':True})
 
     elif command == Command.UNSUBSCRIBE:
