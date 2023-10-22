@@ -138,26 +138,34 @@ async def interaction(req:Request):
 
     elif command == Command.STYLES:
         styles_list = Command.styles()
-        styles_fmt = '\n'.join([f"<li>{s}</li>" for s in styles_list])
+        styles_fmt = '\n'.join([f"{i+1}. {s}" for i,s in enumerate(styles_list)])
         fields = [
-            {'name' : 'All of the following are valid style names:'},
-            {'name' : f"<ol>\n{styles_fmt}\n</ol>"},
+            {'name' : 'Valid styles:'},
+            {'value' : styles_fmt},
         ]
 
     elif command == Command.UNSUBSCRIBE:
         style = options.get('style')
         if not style:
             raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Style is required')
-        num_removed = Command.unsubscribe(guild_id, style)
-        print(f"Removed {num_removed} subscriptions for server {guild_id}")
-        if num_removed == 0:
+        # enforce style validity
+        style = style.strip().lower()
+        if style not in [s.lower() for s in env.TMX_MAP_TAGS.values()]:
             fields = [
-                {'name' : 'Failure!', 'value' : f"Subscription not found for {style.upper()} - nothing to delete."},
+                {'name' : 'Failure!', 'value' : f'"{style.upper()}" is not a valid map style! Use /styles to see all available options.'}
             ]
+        # other error handling goes here if needed
         else:
-            fields = [
-                {'name' : 'Success!', 'value' : f"Unsubscribed from {style.upper()}."},
-            ]
+            num_removed = Command.unsubscribe(guild_id, style)
+            print(f"Removed {num_removed} subscriptions for server {guild_id}")
+            if num_removed == 0:
+                fields = [
+                    {'name' : 'Failure!', 'value' : f"Subscription not found for {style.upper()} - nothing to delete."},
+                ]
+            else:
+                fields = [
+                    {'name' : 'Success!', 'value' : f"Unsubscribed from {style.upper()}."},
+                ]
 
     # preserve legacy functionality while building embeds
     if len(fields) > 0:
