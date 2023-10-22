@@ -137,18 +137,17 @@ async def interaction(req:Request):
             ]
 
     elif command == Command.STYLES:
+        fields = [
+            {'name': 'Valid map styles according to TMX:', 'value': '(These are case insensitive with /subscribe and /unsubscribe)'}
+        ]
         styles_list = Command.styles()
         styles_fmt = [f"{i+1}. {s}" for i,s in enumerate(styles_list)]
-        # split into three columns for condensed tabular display
-        cols = [None]*3
+        # split into columns for condensed tabular display
+        cols = [None]*4
+        col_len = len(styles_fmt) // len(cols)
         for c in range(len(cols)):
-            cols[c] = [s for i,s in enumerate(styles_fmt) if i % len(cols) == c]
-        cols_as_fields = [{'name':'', 'value': '\n'.join(col), 'inline':True} for col in cols]
-        
-        fields = [
-            {'name': 'Valid map styles:', 'value': '(Case insensitive)'}
-        ]
-        fields.extend(cols_as_fields)
+            cols[c] = styles_fmt[c:min(c+col_len, len(styles_fmt))]
+        fields.extend([{'name':'', 'value': '\n'.join(col), 'inline':True} for col in cols])
 
     elif command == Command.UNSUBSCRIBE:
         style = options.get('style')
