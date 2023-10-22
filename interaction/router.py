@@ -1,3 +1,4 @@
+import itertools
 import json
 import uuid
 from fastapi import APIRouter, Request, Response, HTTPException, status as HTTPStatusCode
@@ -143,11 +144,9 @@ async def interaction(req:Request):
         styles_list = Command.styles()
         styles_fmt = [f"{i+1}. {s}" for i,s in enumerate(styles_list)]
         # split into columns for condensed tabular display
-        cols = [None]*3
-        col_len = len(styles_fmt) // len(cols)
-        for c in range(len(cols)):
-            cols[c] = styles_fmt[c*len(styles_fmt):min(c*len(styles_fmt)+col_len, len(styles_fmt))]
-        fields.extend([{'name':'', 'value': '\n'.join(col), 'inline':True} for col in cols])
+        # thank god python3.12 added itertools.batched(), this sucks to do manually
+        for col in itertools.batched(styles_fmt, 3):
+            fields.append({'name':'', 'value': '\n'.join(col), 'inline':True})
 
     elif command == Command.UNSUBSCRIBE:
         style = options.get('style')
