@@ -138,10 +138,17 @@ async def interaction(req:Request):
 
     elif command == Command.STYLES:
         styles_list = Command.styles()
-        styles_fmt = '\n'.join([f"{i+1}. {s}" for i,s in enumerate(styles_list)])
+        styles_fmt = [f"{i+1}. {s}" for i,s in enumerate(styles_list)]
+        # split into three columns for condensed tabular display
+        cols = [None]*3
+        for c in range(len(cols)):
+            cols[c] = [s for i,s in enumerate(styles_fmt) if i % len(cols) == c]
+        cols_as_fields = [{'name':'', 'value': '\n'.join(col), 'inline':True} for col in cols]
+        
         fields = [
-            {'name' : 'Valid styles:', 'value' : styles_fmt},
+            {'name': 'Valid map styles:', 'value': '(Case insensitive)'}
         ]
+        fields.extend(cols_as_fields)
 
     elif command == Command.UNSUBSCRIBE:
         style = options.get('style')
@@ -151,7 +158,7 @@ async def interaction(req:Request):
         style = style.strip().lower()
         if style not in [s.lower() for s in env.TMX_MAP_TAGS.values()]:
             fields = [
-                {'name' : 'Failure!', 'value' : f'"{style.upper()}" is not a valid map style! Use /styles to see all available options.'}
+                {'name' : 'Failure!', 'value' : f'"{style.upper()}" is not a valid map style! Use /styles to see all available options.'},
             ]
         # other error handling goes here if needed
         else:
