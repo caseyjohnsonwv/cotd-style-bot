@@ -93,6 +93,7 @@ async def interaction(req:Request):
     # handle slash commands
     content = {
         'type' : InteractionType.CHAT,
+        'data' : {},
         'embeds' : [{'fields' : []}],
         'allowed_mentions' : [] # suppress @ mentions so we can still pretty print the roles & channels
     }
