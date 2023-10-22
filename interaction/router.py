@@ -143,10 +143,10 @@ async def interaction(req:Request):
         styles_list = Command.styles()
         styles_fmt = [f"{i+1}. {s}" for i,s in enumerate(styles_list)]
         # split into columns for condensed tabular display
-        cols = [None]*4
+        cols = [None]*3
         col_len = len(styles_fmt) // len(cols)
         for c in range(len(cols)):
-            cols[c] = styles_fmt[c:min(c+col_len, len(styles_fmt))]
+            cols[c] = styles_fmt[c*len(styles_fmt):min(c*len(styles_fmt)+col_len, len(styles_fmt))]
         fields.extend([{'name':'', 'value': '\n'.join(col), 'inline':True} for col in cols])
 
     elif command == Command.UNSUBSCRIBE:
