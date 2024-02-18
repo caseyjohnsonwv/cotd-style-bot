@@ -130,11 +130,8 @@ class Track(Base):
     
 class TrackTagsReference(Base):
     __tablename__ = 'track_tags_reference'
-    track_uid: Mapped[str] = mapped_column(ForeignKey('track.uid'))
-    style_id: Mapped[int] = mapped_column(ForeignKey('style.id'))
-    __table_args__ = (
-        UniqueConstraint('track_uid', 'style_id'),
-    )
+    track_uid: Mapped[str] = mapped_column(ForeignKey('track.uid'), primary_key=True)
+    style_id: Mapped[int] = mapped_column(ForeignKey('style.id'), primary_key=True)
     def __repr__(self):
         return f"<<Track {self.track_uid} | Tag {self.style_id}>>"
 
