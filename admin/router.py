@@ -48,8 +48,8 @@ class DatabaseRefreshBody(AdminBody):
 def database_refresh(body:DatabaseRefreshBody):
     if body.admin_key != env.ADMIN_KEY:
         raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
-    jobs.refresh_job(suppress_notifications=DatabaseRefreshBody.suppress_notifications)
-    print(f"Refreshed data. Notification suppression: {DatabaseRefreshBody.suppress_notifications}")
+    jobs.refresh_job(suppress_notifications=body.suppress_notifications)
+    print(f"Refreshed data. Notification suppression: {body.suppress_notifications}")
     return Response(status_code=HTTPStatusCode.HTTP_200_OK)
 
 
