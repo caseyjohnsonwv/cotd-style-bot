@@ -16,6 +16,7 @@ LAST_RESTART_TIME = datetime.utcnow()
 async def lifespan(app: FastAPI):
     # startup - create db tables if not exist
     db.create_all()
+    print(db.populate_style_table())
     # yield to let application run
     yield
 
