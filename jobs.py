@@ -86,7 +86,6 @@ def refresh_job(suppress_notifications:bool=False):
 
     # extract all useful information
     tags = [int(t) for t in tmx_json['Tags'].split(',')]
-    tags_readable = [env.TMX_MAP_TAGS[t] for t in tags]
     y,m,d = tmio_json['year'], tmio_json['month'], len(tmio_json['days'])
     map_date = datetime(y,m,d)
     map_json = tmio_json['days'][-1]['map']
@@ -108,7 +107,7 @@ def refresh_job(suppress_notifications:bool=False):
         track_uid=map_uid,
         track_tags=tags
     )
-    print(f"New map for {map_date.isoformat()} is '{map_name_cleaned}' by {author_name} (AT: {author_time:.3f}) - {tags_readable}")
+    print(f"New map for {map_date.isoformat()} is '{map_name_cleaned}' by {author_name} (AT: {author_time:.3f}) - {tags}")
     if env.Settings.notifications_enabled and not suppress_notifications:
         print('Triggering notifications')
         time.sleep(1)
