@@ -51,9 +51,7 @@ class Command:
 
     STYLES = 'styles'
     def styles():
-        results = list(env.TMX_MAP_TAGS.values())
-        results.sort()
-        return results
+        return db.get_all_style_names()
     
 
     UNSUBSCRIBE = 'unsubscribe'
@@ -98,14 +96,17 @@ async def interaction(req:Request):
             name, value = option['name'], option['value']
             options[name] = value
 
+
     if command == Command.HELP:
         help_text = Command.help()
         message = "Your command worked, but it hasn't been implemented yet"
+
 
     elif command == Command.SHOW:
         subscriptions = Command.show()
         message = "Your command worked, but it hasn't been implemented yet"
     
+
     elif command == Command.SUBSCRIBE:
         role_id, style = options.get('role'), options.get('style')
         # enforce role & style requirement
@@ -126,6 +127,7 @@ async def interaction(req:Request):
                 {'name' : 'Reminder:', 'value' : f"If you have previously configured another role or channel for this style, the previous configuration has been overwritten."}
             ]
 
+
     elif command == Command.STYLES:
         fields = [
             {'name': 'Valid map styles according to TMX:', 'value': '(These are case insensitive with /subscribe and /unsubscribe)'}
@@ -135,6 +137,7 @@ async def interaction(req:Request):
         # split into columns for condensed tabular display
         for col in itertools.batched(styles_fmt, sum(divmod(len(styles_fmt), 3))):
             fields.append({'name':'', 'value': '\n'.join(col), 'inline':True})
+
 
     elif command == Command.UNSUBSCRIBE:
         style = options.get('style')
@@ -159,6 +162,7 @@ async def interaction(req:Request):
                     {'name' : 'Failure!', 'value' : f"Subscription not found for {style.upper()} - nothing to delete."},
                 ]
 
+
     # preserve legacy functionality while building embeds
     if len(fields) > 0:
         content['data']['embeds'][0]['fields'] = fields
@@ -166,6 +170,7 @@ async def interaction(req:Request):
         content['data']['content'] = message
         del content['data']['embeds']
     print(content)
+    
 
     # format into json and return
     return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')

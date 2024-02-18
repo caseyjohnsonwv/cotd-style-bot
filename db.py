@@ -1,14 +1,17 @@
-import env
+from typing import List
 from sqlalchemy import create_engine, Engine
 from sqlalchemy import BigInteger, ForeignKey, UniqueConstraint
 from sqlalchemy import text as RAW_SQL
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.orm.session import Session
+import env
+
 
 
 def get_engine(echo:bool=True) -> Engine:
     return create_engine(env.DATABASE_URL, echo=echo)
+
 
 
 class Base(DeclarativeBase):
@@ -38,11 +41,18 @@ def populate_style_table() -> int:
         index_elements=[Style.id],
         set_={Style.name: stmt.excluded.name}
     )
-    with Session(get_engine(echo=False)) as session:
+    with Session(get_engine()) as session:
         session.execute(stmt)
         session.commit()
         res = session.query(Style.id).count()
     return res
+
+def get_all_style_names() -> List[str]:
+    with Session(get_engine()) as session:
+        res = session.query(Style).order_by(Style.name).all()
+        style_names = [row.name for row in res]
+    return style_names
+
 
 
 class Subscription(Base):
@@ -63,7 +73,7 @@ def create_subscription(guild_id:int, channel_id:int, role_id:int, style_name:st
         stmt = RAW_SQL(f"SELECT id FROM {Style.__tablename__} WHERE LOWER(name) = '{style_name}' LIMIT 1;")
         style_id = session.execute(stmt).scalar_one()
     # insert subscription into table
-    with Session(get_engine(echo=False)) as session:
+    with Session(get_engine()) as session:
         stmt = pg.insert(Subscription).values(guild_id=guild_id, channel_id=channel_id, role_id=role_id, style_id=style_id)
         stmt = stmt.on_conflict_do_update(
             index_elements=[Subscription.guild_id, Subscription.style_id],
@@ -75,7 +85,7 @@ def create_subscription(guild_id:int, channel_id:int, role_id:int, style_name:st
     return sub_id
 
 def delete_subscription(guild_id:int, style_name:str) -> bool:
-    with Session(get_engine(echo=False)) as session:
+    with Session(get_engine()) as session:
         res = session.query(Subscription) \
             .where(Subscription.style_id == Style.id) \
             .where(Subscription.guild_id == guild_id) \
