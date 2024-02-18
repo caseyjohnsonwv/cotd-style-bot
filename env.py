@@ -15,13 +15,6 @@ VERIFY_SIGNATURES = True if os.environ['VERIFY_SIGNATURES'].strip().lower() == '
 DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql+psycopg2://')
 
 
-# global map styles from TMX
-import json
-with open('dat/styles.json', 'r') as f:
-    j = dict(json.load(f))
-TMX_MAP_TAGS = {int(k):v for k,v in j.items()}
-
-
 # global headers we'll need for http requests
 DISCORD_HEADERS = {'Content-Type':'application/json', 'Authorization':f"Bot {DISCORD_BOT_TOKEN}"}
 FETCH_HEADERS = {'User-Agent' : f"kcjwv-icy-cotd-bot-{ENV_NAME}"}

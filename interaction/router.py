@@ -55,8 +55,10 @@ class Command:
     
 
     UNSUBSCRIBE = 'unsubscribe'
-    def unsubscribe(guild_id:int, style_name:str) -> bool:
-        return db.delete_subscription(guild_id=guild_id, style_name=style_name)
+    def unsubscribe(guild_id:int, style_name:str=None, role_id:int=None) -> bool:
+        if not style_name and not role_id:
+            raise Exception('At minimum, one of Style or Role is required')
+        return db.delete_subscription(guild_id=guild_id, style_name=style_name, role_id=role_id)
 
 
 
@@ -108,22 +110,16 @@ async def interaction(req:Request):
     
 
     elif command == Command.SUBSCRIBE:
-        role_id, style = options.get('role'), options.get('style')
+        role_id, style_name = options.get('role'), options.get('style')
         # enforce role & style requirement
-        if not role_id or not style:
+        if not role_id or not style_name:
             raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Role and Style are required')
-        # enforce style validity
-        style = style.strip().lower()
-        if style not in [s.lower() for s in env.TMX_MAP_TAGS.values()]:
-            fields = [
-                {'name' : 'Failure!', 'value' : f'"{style.upper()}" is not a valid map style! Use /styles to see all available options.'}
-            ]
         # any additional error scenarios would go here
         else:
-            subscription_id = Command.subscribe(guild_id, channel_id, role_id, style)
+            subscription_id = Command.subscribe(guild_id=guild_id, channel_id=channel_id, role_id=role_id, style_name=style_name)
             print(f"Created subscription {subscription_id} for server {guild_id}")
             fields = [
-                {'name' : 'Success!', 'value' : f"You are now subscribed to {style.upper()}! I will mention <@&{role_id}> here in <#{channel_id}> when this style becomes Cup of the Day."},
+                {'name' : 'Success!', 'value' : f"You are now subscribed to {style_name.upper()}! I will mention <@&{role_id}> here in <#{channel_id}> when this style becomes Cup of the Day."},
                 {'name' : 'Reminder:', 'value' : f"If you have previously configured another role or channel for this style, the previous configuration has been overwritten."}
             ]
 
@@ -140,26 +136,21 @@ async def interaction(req:Request):
 
 
     elif command == Command.UNSUBSCRIBE:
-        style = options.get('style')
-        if not style:
-            raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Style is required')
-        # enforce style validity
-        style = style.strip().lower()
-        if style not in [s.lower() for s in env.TMX_MAP_TAGS.values()]:
-            fields = [
-                {'name' : 'Failure!', 'value' : f'"{style.upper()}" is not a valid map style! Use /styles to see all available options.'},
-            ]
+        style_name = options.get('style')
+        role_id = options.get('role')
+        if not style_name and not role_id:
+            raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Style and/or Role is required')
         # other error handling goes here if needed
         else:
-            is_removed = Command.unsubscribe(guild_id, style)
-            print(f"Removed {style} subscription for server {guild_id}: {is_removed}")
+            is_removed = Command.unsubscribe(guild_id=guild_id, style_name=style_name, role_id=role_id)
+            print(f"Removed {style_name} subscription for server {guild_id}: {is_removed}")
             if is_removed:
                 fields = [
-                    {'name' : 'Success!', 'value' : f"Unsubscribed from {style.upper()}."},
+                    {'name' : 'Success!', 'value' : f"Unsubscribed from {style_name.upper()}."},
                 ]
             else:
                 fields = [
-                    {'name' : 'Failure!', 'value' : f"Subscription not found for {style.upper()} - nothing to delete."},
+                    {'name' : 'Failure!', 'value' : f"Subscription not found for {style_name.upper()} - nothing to delete."},
                 ]
 
 
