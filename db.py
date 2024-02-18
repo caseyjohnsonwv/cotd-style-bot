@@ -1,6 +1,6 @@
 import env
 from sqlalchemy import create_engine, Engine
-from sqlalchemy import BigInteger, ForeignKey
+from sqlalchemy import BigInteger, ForeignKey, UniqueConstraint
 from sqlalchemy import text as RAW_SQL
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -52,6 +52,9 @@ class Subscription(Base):
     channel_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     role_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     style_id: Mapped[int] = mapped_column(ForeignKey('style.id'))
+    __table_args__ = (
+        UniqueConstraint('guild_id', 'style_id')
+    )
 
 def create_subscription(guild_id:int, channel_id:int, role_id:int, style_name:str) -> int:
     # look up style id from name
@@ -66,8 +69,7 @@ def create_subscription(guild_id:int, channel_id:int, role_id:int, style_name:st
             index_elements=[Subscription.guild_id, Subscription.style_id],
             set_={Subscription.channel_id: channel_id, Subscription.role_id: role_id}
         )
-        session.execute(stmt)
+        sub_id = session.execute(stmt)
         session.commit()
-        res = session.get_one(Subscription, {'guild_id':guild_id, 'channel_id':channel_id, 'role_id':role_id, 'style_id':style_id})
     # return newly created subscription's autoincremented id
-    return res.id
+    return sub_id
