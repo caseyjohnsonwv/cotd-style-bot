@@ -1,5 +1,6 @@
 import env
-from sqlalchemy import create_engine, Engine, ForeignKey
+from sqlalchemy import create_engine, Engine
+from sqlalchemy import BigInteger, ForeignKey
 from sqlalchemy import text as RAW_SQL
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -47,9 +48,9 @@ def populate_style_table() -> int:
 class Subscription(Base):
     __tablename__ = 'subscription'
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    guild_id: Mapped[int] = mapped_column(nullable=False)
-    channel_id: Mapped[int] = mapped_column(nullable=False)
-    role_id: Mapped[int] = mapped_column(nullable=False)
+    guild_id: Mapped[BigInteger] = mapped_column(nullable=False)
+    channel_id: Mapped[BigInteger] = mapped_column(nullable=False)
+    role_id: Mapped[BigInteger] = mapped_column(nullable=False)
     style_id: Mapped[int] = mapped_column(ForeignKey('style.id'))
 
 def create_subscription(guild_id:int, channel_id:int, role_id:int, style_name:str) -> int:
