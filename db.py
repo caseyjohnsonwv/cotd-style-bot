@@ -53,7 +53,7 @@ class Subscription(Base):
     role_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     style_id: Mapped[int] = mapped_column(ForeignKey('style.id'))
     __table_args__ = (
-        UniqueConstraint('guild_id', 'style_id')
+        UniqueConstraint('guild_id', 'style_id'),
     )
 
 def create_subscription(guild_id:int, channel_id:int, role_id:int, style_name:str) -> int:
