@@ -4,6 +4,7 @@ import uuid
 from fastapi import APIRouter, Request, Response, HTTPException, status as HTTPStatusCode
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
+import db
 import env
 
 
@@ -38,16 +39,13 @@ class Command:
     
 
     SUBSCRIBE = 'subscribe'
-    def subscribe(guild_id:int, channel_id:int, role_id:int, style:str) -> str:
-        subscription_id = str(uuid.uuid4())
-        j = {
-            'subscription_id' : subscription_id,
-            'guild_id' : guild_id,
-            'channel_id' : channel_id,
-            'role_id' : role_id,
-            'style' : style.lower(),
-        }
-        # [TODO]: this
+    def subscribe(guild_id:int, channel_id:int, role_id:int, style_name:str) -> int:
+        subscription_id = db.create_subscription(
+            guild_id=guild_id,
+            channel_id=channel_id,
+            role_id=role_id,
+            style_name=style_name
+        )
         return subscription_id
 
 
