@@ -1,6 +1,8 @@
 import env
 from sqlalchemy import create_engine, Engine, ForeignKey
+from sqlalchemy import text as RAW_SQL
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm.session import Session
 
 
 def get_engine(echo:bool=True) -> Engine:
@@ -17,6 +19,17 @@ class Style(Base):
     name: Mapped[str] = mapped_column(nullable=False, unique=True)
     def __repr__(self):
         return f"<<Style {self.name} ({self.id})>>"
+    
+def populate_style_table() -> int:
+    styles = [Style(id=k, name=v) for k,v in env.TMX_MAP_TAGS]
+    with Session(get_engine(echo=False)) as session:
+        session.execute(RAW_SQL(f"TRUNCATE TABLE {Style.__tablename__};"))
+        session.commit()
+        session.add_all(styles)
+        session.commit()
+    with Session(get_engine(echo=False)) as session:
+        num_records = session.execute(RAW_SQL(f"SELECT COUNT(*) FROM {Style.__tablename__}")).scalar_one()
+    return num_records
 
 
 # class Subscription(Base):
@@ -29,9 +42,9 @@ class Style(Base):
 
 
 def create_all():
-    engine = get_engine(echo=False)
+    engine = get_engine(echo=True)
     Base.metadata.create_all(engine)
 
 def drop_all():
-    engine = get_engine(echo=False)
+    engine = get_engine(echo=True)
     Base.metadata.drop_all(engine)
