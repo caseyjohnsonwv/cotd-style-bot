@@ -76,7 +76,7 @@ def create_subscription(guild_id:int, channel_id:int, role_id:int, style_name:st
 
 def delete_subscription(guild_id:int, style_name:str) -> bool:
     with Session(get_engine(echo=False)) as session:
-        res = session.query(Subscription, Style) \
+        res = session.query(Subscription) \
             .where(Subscription.style_id == Style.id) \
             .where(Subscription.guild_id == guild_id) \
             .where(Style.name.ilike(style_name)) \
