@@ -3,6 +3,7 @@ from fastapi import APIRouter, Response, HTTPException, status as HTTPStatusCode
 from pydantic import BaseModel
 import db
 import env
+import jobs
 
 
 router = APIRouter(prefix='/admin')
@@ -36,15 +37,30 @@ def update_settings(body:SettingsBody):
 
 
 """
-POST '/admin/reset'
+POST '/admin/database/refresh'
+Admin route to refresh TOTD in database.
+Implicitly disables notifications, but can send them if explicitly instructed.
+"""
+class DatabaseRefreshBody(AdminBody):
+    suppress_notifications:bool | None = True
+
+@router.post('/database/refresh')
+def database_refresh(body:AdminBody):
+    if body.admin_key != env.ADMIN_KEY:
+        raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
+    jobs.refresh_job(suppress_notifications=DatabaseRefreshBody.suppress_notifications)
+    print(f"Refreshed data. Notification suppression: {DatabaseRefreshBody.suppress_notifications}")
+    return Response(status_code=HTTPStatusCode.HTTP_200_OK)
+
+
+
+"""
+POST '/admin/database/reset'
 Admin route where tables can be truncated (and reloaded, if applicable) manually.
 Disallowed in production. This route is for development and debugging only.
 """
-class ResetBody(AdminBody):
-    pass
-
-@router.post('/reset')
-def reset(body:ResetBody):
+@router.post('/database/reset')
+def database_reset(body:AdminBody):
     if body.admin_key != env.ADMIN_KEY:
         raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
     if 'prod' in env.ENV_NAME.strip().lower():

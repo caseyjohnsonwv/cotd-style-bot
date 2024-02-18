@@ -1,7 +1,8 @@
+from datetime import datetime
 from typing import List
-from sqlalchemy import create_engine, Engine
-from sqlalchemy import BigInteger, ForeignKey, UniqueConstraint
-from sqlalchemy import text as RAW_SQL
+from sqlalchemy import create_engine, Engine, Row
+from sqlalchemy import BigInteger, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import text as RAW_SQL, or_ as SQL_OR, func as F
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.orm.session import Session
@@ -71,6 +72,8 @@ class Subscription(Base):
     __table_args__ = (
         UniqueConstraint('guild_id', 'style_id'),
     )
+    def __repr__(self):
+        return f"<<Subscription {self.id} for style {self.style_id}>>"
 
 def create_subscription(guild_id:int, channel_id:int, role_id:int, style_name:str) -> int:
     # look up style id from name
@@ -101,3 +104,109 @@ def delete_subscription(guild_id:int, style_name:str) -> bool:
             session.delete(res)
             session.commit()
     return res is not None
+
+def get_subscriptions_for_styles(style_names:List[str]) -> List[Subscription]:
+    with Session(get_engine()) as session:
+        where_clauses = [session.query(Subscription).where(Style.name.ilike(name)) for name in style_names]
+        res = session.query(Subscription) \
+            .where(Subscription.style_id == Style.id) \
+            .where(SQL_OR(where_clauses)) \
+            .all()
+    return res
+
+
+
+class Track(Base):
+    __tablename__ = 'track'
+    uid: Mapped[str] = mapped_column(primary_key=True)
+    date: Mapped[datetime] = mapped_column(DateTime, unique=True)
+    name: Mapped[str] = mapped_column(nullable=False)
+    author: Mapped[str] = mapped_column(nullable=False)
+    author_time: Mapped[float] = mapped_column(nullable=False)
+    thumbnail_url: Mapped[str] = mapped_column()
+    load_date_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    def __repr__(self):
+        return f"<<Track {self.map_uid} from {self.date}>>"
+    
+class TrackTagsReference(Base):
+    __tablename__ = 'track_tags_reference'
+    track_uid: Mapped[str] = mapped_column(ForeignKey('track.uid'))
+    style_id: Mapped[int] = mapped_column(ForeignKey('style.id'))
+    __table_args__ = (
+        UniqueConstraint('track_uid', 'style_id'),
+    )
+    def __repr__(self):
+        return f"<<Track {self.track_uid} | Tag {self.style_id}>>"
+
+def create_track(uid:str, date:datetime, name:str, author:str, author_time:float, thumbnail_url:str):
+    # truncate totd date
+    date = datetime(date.year, date.month, date.day)
+    with Session(get_engine()) as session:
+        stmt = pg.insert(Track).values(
+            uid=uid,
+            date=date,
+            name=name,
+            author=author,
+            author_time=author_time,
+            thumbnail_url=thumbnail_url,
+            load_date_time=datetime.utcnow()
+        )
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[Track.date],
+            set_={
+                Track.uid: stmt.excluded.uid,
+                Track.name: stmt.excluded.name,
+                Track.author: stmt.excluded.author,
+                Track.author_time: stmt.excluded.author_time,
+                Track.thumbnail_url: stmt.excluded.thumbnail_url,
+                Track.load_date_time: stmt.excluded.load_date_time,
+            },
+        )
+        session.execute(stmt)
+        session.commit()
+    return uid
+
+def create_track_tags_reference(track_uid:str, track_tags:List[int]) -> int:
+    tag_refs = [{'track_uid':track_uid, 'style_id':style_id} for style_id in track_tags]
+    with Session(get_engine()) as session:
+        stmt = pg.insert(TrackTagsReference).values(tag_refs).on_conflict_do_nothing()
+        session.execute(stmt)
+    return len(track_tags)
+
+def get_track_by_date(date:datetime) -> Track:
+    date = datetime(date.year, date.month, date.day)
+    with Session(get_engine()) as session:
+        res = session.query(Track).where(Track.date == date).first()
+    return res
+
+
+
+# crud function to put all this notification logic in one query
+
+def get_notification_payloads() -> List[Row]:
+    now = datetime.utcnow()
+    current_date = datetime(now.year, now.month, now.day)
+    with Session(get_engine()) as session:
+        res = session.query(
+            Subscription.role_id,
+            Subscription.channel_id,
+            Track.name.label('track_name'),
+            Track.author,
+            Track.author_time,
+            Track.thumbnail_url,
+            F.array_agg(Style.name, type_=pg.ARRAY(str)).label('track_tags')
+        ) \
+        .where(Track.date == current_date) \
+        .where(TrackTagsReference.track_uid == Track.uid) \
+        .where(TrackTagsReference.style_id == Subscription.style_id) \
+        .where(TrackTagsReference.style_id == Style.id) \
+        .group_by(
+            Subscription.role_id,
+            Subscription.channel_id,
+            Track.name,
+            Track.author,
+            Track.author_time,
+            Track.thumbnail_url,
+        ) \
+        .all()
+    return res
