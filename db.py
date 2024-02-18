@@ -56,14 +56,21 @@ class Subscription(Base):
 def create_subscription(guild_id:int, channel_id:int, role_id:int, style_name:str) -> int:
     # look up style id from name
     style_name = style_name.strip().lower()
-    stmt = RAW_SQL(f"SELECT id FROM {Style.__tablename__} WHERE LOWER(name) = '{style_name}' LIMIT 1;")
     with Session(get_engine(echo=False)) as session:
+        stmt = RAW_SQL(f"SELECT id FROM {Style.__tablename__} WHERE LOWER(name) = '{style_name}' LIMIT 1;")
         style_id = session.execute(stmt).scalar_one()
     # insert subscription into table
     with Session(get_engine(echo=False)) as session:
-        session.execute(
-            pg.insert(Subscription).values(guild_id=guild_id, channel_id=channel_id, role_id=role_id, style_id=style_id)
+        stmt = pg.insert(Subscription).values(guild_id=guild_id, channel_id=channel_id, role_id=role_id, style_id=style_id)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[Subscription.guild_id, Subscription.style_id],
+            set_={Subscription.channel_id: channel_id, Subscription.role_id: role_id}
         )
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[Subscription.guild_id, Subscription.role_id],
+            set_={Subscription.channel_id: channel_id, Subscription.style_id: style_id}
+        )
+        session.execute(stmt)
         session.commit()
         res = session.get_one(Subscription, {'guild_id':guild_id, 'channel_id':channel_id, 'role_id':role_id, 'style_id':style_id})
     # return newly created subscription's autoincremented id
