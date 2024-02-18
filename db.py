@@ -31,11 +31,14 @@ class Style(Base):
         return f"<<Style {self.name} ({self.id})>>"
     
 def populate_style_table() -> int:
+    styles = [{'id':id, 'name':name} for id,name in env.TMX_MAP_TAGS.items()]
+    stmt = pg.insert(Style).values(styles)
+    stmt = stmt.on_conflict_do_update(
+        index_elements=[Style.id],
+        set_={Style.name: stmt.excluded.name}
+    )
     with Session(get_engine(echo=False)) as session:
-        for id,name in env.TMX_MAP_TAGS.items():
-            session.execute(
-                pg.insert(Style).values(id=id, name=name).on_conflict_do_update(index_elements=[Style.id])
-            )
+        session.execute(stmt)
         session.commit()
         res = session.query(Style.id).count()
     return res
