@@ -66,10 +66,6 @@ def create_subscription(guild_id:int, channel_id:int, role_id:int, style_name:st
             index_elements=[Subscription.guild_id, Subscription.style_id],
             set_={Subscription.channel_id: channel_id, Subscription.role_id: role_id}
         )
-        stmt = stmt.on_conflict_do_update(
-            index_elements=[Subscription.guild_id, Subscription.role_id],
-            set_={Subscription.channel_id: channel_id, Subscription.style_id: style_id}
-        )
         session.execute(stmt)
         session.commit()
         res = session.get_one(Subscription, {'guild_id':guild_id, 'channel_id':channel_id, 'role_id':role_id, 'style_id':style_id})
