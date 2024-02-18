@@ -21,7 +21,7 @@ class Style(Base):
         return f"<<Style {self.name} ({self.id})>>"
     
 def populate_style_table() -> int:
-    styles = [Style(id=k, name=v) for k,v in env.TMX_MAP_TAGS]
+    styles = [Style(id=k, name=v) for k,v in env.TMX_MAP_TAGS.items()]
     with Session(get_engine(echo=False)) as session:
         session.execute(RAW_SQL(f"TRUNCATE TABLE {Style.__tablename__};"))
         session.commit()
