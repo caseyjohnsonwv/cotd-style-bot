@@ -100,9 +100,12 @@ def create_subscription(guild_id:int, channel_id:int, role_id:int, style_name:st
 
 def delete_subscription(guild_id:int, style_name:str=None, role_id:int=None) -> bool:
     with Session(get_engine()) as session:
-        style_like = session.query(Subscription).where(Style.name.ilike(style_name))
-        role_equals = session.query(Subscription).where(Subscription.role_id == role_id)
-        where_clauses = SQL_AND([style_like, role_equals]) if style_name and role_id else SQL_OR([style_like, role_equals])
+        where_clauses = []
+        if style_name:
+            where_clauses.append(session.query(Subscription).where(Style.name.ilike(style_name)))
+        if role_id:
+            where_clauses.append(session.query(Subscription).where(Subscription.role_id == role_id))
+        where_clauses = SQL_AND(where_clauses)
         res = session.query(Subscription) \
             .where(Subscription.style_id == Style.id) \
             .where(Subscription.guild_id == guild_id) \
