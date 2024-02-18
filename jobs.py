@@ -70,14 +70,19 @@ def refresh_job(suppress_notifications:bool=False):
     resp = requests.get(url, headers=env.FETCH_HEADERS)
     print(f"trackmania.io: {resp.status_code}")
     tmio_json = resp.json()
-    map_uid = tmio_json['days'][-1]['map']['mapUid']
+    map_uid = tmio_json['days'][-2]['map']['mapUid']
     print(f"totd map_uid: {map_uid}")
 
     # retrieve same map from tmx
     url = f"https://trackmania.exchange/api/maps/get_map_info/uid/{map_uid}"
     resp = requests.get(url, headers=env.FETCH_HEADERS)
     print(f"tmx: {resp.status_code}")
-    tmx_json = resp.json()
+    try:
+        tmx_json = resp.json()
+    except requests.exceptions.JSONDecodeError as ex:
+        print(ex)
+        print('This error usually means the map has not been uploaded to TMX')
+        return
 
     # extract all useful information
     tags = [int(t) for t in tmx_json['Tags'].split(',')]
