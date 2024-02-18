@@ -182,15 +182,15 @@ def get_track_by_date(date:datetime) -> Track:
 
 def get_notification_payloads() -> List[Row]:
     now = datetime.utcnow()
-    current_date = datetime(now.year, now.month, now.day-1)
+    current_date = datetime(now.year, now.month, now.day)
     with Session(get_engine()) as session:
         res = session.query(
-            Subscription.role_id,
-            Subscription.channel_id,
+            Subscription.role_id.label('role_id'),
+            Subscription.channel_id.label('channel_id'),
             Track.name.label('track_name'),
-            Track.author,
-            Track.author_time,
-            Track.thumbnail_url,
+            Track.author.label('author'),
+            Track.author_time.label('author_time'),
+            Track.thumbnail_url.label('thumbnail_url'),
             F.array_agg(Style.name, type_=pg.ARRAY(String)).label('track_tags')
         ) \
         .where(Track.date == current_date) \
