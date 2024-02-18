@@ -31,25 +31,25 @@ def notify_job():
     for notif in payloads:
         payload = {
             'type': 4,
-            'content' : f"<@&{notif['role_id']}>",
+            'content' : f"<@&{notif.role_id}>",
             'embeds' : [
                 {
                     'title' : f"It's Cup of the Day time!",
                     'url' : 'https://trackmania.io/#/totd',
                     'fields' : [
                         {
-                            'name' : f"{notif['track_name']} by {notif['author']} (AT: {notif['author_time']:.3f})",
-                            'value' : f"TMX says this map is {' / '.join([t.upper() for t in notif['tags']])}!",
+                            'name' : f"{notif.track_name} by {notif.author} (AT: {notif.author_time:.3f})",
+                            'value' : f"TMX says this map is {' / '.join([t.upper() for t in notif.track_tags])}!",
                         }
                     ],
                     'image' : {
-                        'url' : notif['thumbnail_url'],
+                        'url' : notif.thumbnail_url,
                     },
                 },
             ]
         }
-        target_url = f"https://discord.com/api/channels/{notif['channel_id']}/messages"
-        t = (notif['channel_id'], target_url, payload)
+        target_url = f"https://discord.com/api/channels/{notif.channel_id}/messages"
+        t = (notif.channel_id, target_url, payload)
         messages.append(t)
     # push to all subscribers
     print(f"Pushing {len(messages)} notifications")
