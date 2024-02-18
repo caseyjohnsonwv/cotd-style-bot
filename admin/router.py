@@ -1,10 +1,8 @@
-from datetime import datetime
 import json
 from fastapi import APIRouter, Response, HTTPException, status as HTTPStatusCode
 from pydantic import BaseModel
-from db import maps_table, subs_table, REDIS, REDIS_KEY
+import db
 import env
-import jobs
 
 
 router = APIRouter(prefix='/admin')
@@ -36,50 +34,20 @@ def update_settings(body:SettingsBody):
     return Response(status_code=HTTPStatusCode.HTTP_200_OK)
 
 
-
 """
-GET/POST '/admin/maps'
-Admin route where map data can be manually manipulated.
-Mostly used for debugging & development.
+POST '/admin/reset'
+Admin route for restting database during development / debugging.
+Disallowed in production.
 """
-@router.get('/maps')
-def get_maps():
-    content = maps_table.all()
-    return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK)
+class ResetBody(AdminBody):
+    pass
 
-@router.post('/maps')
-def refresh_maps(body:AdminBody):
-    if body.admin_key != env.ADMIN_KEY:
-        raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
-    jobs.SCHEDULER.add_job(jobs.refresh_job, next_run_time=datetime.now(jobs.CET_TZ))
-    content = {'message':'Data refresh triggered'}
-    return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_202_ACCEPTED)
-
-@router.delete('/maps')
-def delete_maps(body:AdminBody):
-    if body.admin_key != env.ADMIN_KEY:
-        raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
-    maps_table.truncate()
-    REDIS.delete(f"{REDIS_KEY}:maps")
-    return Response(status_code=HTTPStatusCode.HTTP_204_NO_CONTENT)
-
-"""
-GET/DELETE '/admin/subscriptions'
-Admin route to show or truncate subscriptions. (Note: truncate disallowed in production)
-Mostly used for debugging & development.
-"""
-@router.get('/subscriptions')
-def get_subscriptions():
-    content = subs_table.all()
-    return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK)
-
-@router.delete('/subscriptions')
-def delete_subscriptions(body:AdminBody):
+@router.post('/reset')
+def reset(body:ResetBody):
     if body.admin_key != env.ADMIN_KEY:
         raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
     if 'prod' in env.ENV_NAME.lower():
-        raise HTTPException(status_code=HTTPStatusCode.HTTP_405_METHOD_NOT_ALLOWED, detail='DELETE is disallowed in production')
-    REDIS.delete(f"{REDIS_KEY}:subs")
-    with open(REDIS_KEY, 'w') as f:
-        json.dump(dict(), f)
-    return Response(status_code=HTTPStatusCode.HTTP_204_NO_CONTENT)
+        raise HTTPException(status_code=HTTPStatusCode.HTTP_403_FORBIDDEN, detail='This function is disallowed in production')
+    db.drop_all()
+    db.create_all()
+    return Response(status_code=HTTPStatusCode.HTTP_200_OK)
