@@ -182,7 +182,7 @@ def get_track_by_date(date:datetime) -> Track:
 
 def get_notification_payloads() -> List[Row]:
     now = datetime.utcnow()
-    current_date = datetime(now.year, now.month, now.day)
+    current_date = datetime(now.year, now.month, now.day-1)
     with Session(get_engine()) as session:
         res = session.query(
             Subscription.role_id,
