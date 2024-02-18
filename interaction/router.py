@@ -57,14 +57,8 @@ class Command:
     
 
     UNSUBSCRIBE = 'unsubscribe'
-    def unsubscribe(guild_id:int, style:str) -> int:
-        j = {
-            'guild_id' : guild_id,
-            'style' : style.lower(),
-        }
-        # [TODO]: this
-        # return len(removed)
-        return 0
+    def unsubscribe(guild_id:int, style_name:str) -> bool:
+        return db.delete_subscription(guild_id=guild_id, style_name=style_name)
 
 
 
@@ -154,15 +148,15 @@ async def interaction(req:Request):
             ]
         # other error handling goes here if needed
         else:
-            num_removed = Command.unsubscribe(guild_id, style)
-            print(f"Removed {num_removed} subscriptions for server {guild_id}")
-            if num_removed == 0:
+            is_removed = Command.unsubscribe(guild_id, style)
+            print(f"Removed {style} subscription for server {guild_id}: {is_removed}")
+            if is_removed:
                 fields = [
-                    {'name' : 'Failure!', 'value' : f"Subscription not found for {style.upper()} - nothing to delete."},
+                    {'name' : 'Success!', 'value' : f"Unsubscribed from {style.upper()}."},
                 ]
             else:
                 fields = [
-                    {'name' : 'Success!', 'value' : f"Unsubscribed from {style.upper()}."},
+                    {'name' : 'Failure!', 'value' : f"Subscription not found for {style.upper()} - nothing to delete."},
                 ]
 
     # preserve legacy functionality while building embeds
