@@ -15,11 +15,11 @@ LAST_RESTART_TIME = datetime.utcnow()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # startup - create db tables if not exist
-    db.drop_all()
-    db.create_all()
-    db.populate_style_table()
+    db.do_startup_actions()
     # yield to let application run
     yield
+    # perform shutdown tasks, if any
+    pass
 
 
 app = FastAPI(lifespan=lifespan)

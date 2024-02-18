@@ -14,6 +14,12 @@ def get_engine(echo:bool=True) -> Engine:
 
 
 
+def do_startup_actions():
+    create_all()
+    populate_style_table()
+
+
+
 class Base(DeclarativeBase):
     pass
 

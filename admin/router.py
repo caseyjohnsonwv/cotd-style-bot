@@ -32,3 +32,23 @@ def update_settings(body:SettingsBody):
     if body.notifications_enabled:
         env.Settings.notifications_enabled = body.notifications_enabled
     return Response(status_code=HTTPStatusCode.HTTP_200_OK)
+
+
+
+"""
+POST '/admin/reset'
+Admin route where tables can be truncated (and reloaded, if applicable) manually.
+Disallowed in production. This route is for development and debugging only.
+"""
+class ResetBody(AdminBody):
+    table_name:str
+
+@router.post('/reset')
+def reset(body:ResetBody):
+    if body.admin_key != env.ADMIN_KEY:
+        raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
+    if 'prod' in env.ENV_NAME.strip().lower():
+        raise HTTPException(status_code=HTTPStatusCode.HTTP_403_FORBIDDEN, detail='Action is disallowed in production')
+    db.drop_all()
+    db.do_startup_actions()
+    return Response(status_code=HTTPStatusCode.HTTP_200_OK)
