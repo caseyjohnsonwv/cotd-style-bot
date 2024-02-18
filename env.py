@@ -11,6 +11,10 @@ NOTIFICATIONS_ENABLED_DEFAULT = True if os.environ['NOTIFICATIONS_ENABLED_DEFAUL
 VERIFY_SIGNATURES = True if os.environ['VERIFY_SIGNATURES'].strip().lower() == 'true' else False
 
 
+# fix database url for heroku postgres
+DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql+psycopg2://')
+
+
 # global map styles from TMX
 import json
 with open('dat/styles.json', 'r') as f:
