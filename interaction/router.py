@@ -4,8 +4,6 @@ import uuid
 from fastapi import APIRouter, Request, Response, HTTPException, status as HTTPStatusCode
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
-from tinydb import where
-from db import subs_table
 import env
 
 
@@ -49,9 +47,7 @@ class Command:
             'role_id' : role_id,
             'style' : style.lower(),
         }
-        # enforce uniqueness for combination guild_id + style
-        subs_table.remove((where('guild_id') == j['guild_id']) & (where('style') == j['style']))
-        subs_table.insert(j)
+        # [TODO]: this
         return subscription_id
 
 
@@ -68,8 +64,9 @@ class Command:
             'guild_id' : guild_id,
             'style' : style.lower(),
         }
-        removed = subs_table.remove((where('guild_id') == j['guild_id']) & (where('style') == j['style']))
-        return len(removed)
+        # [TODO]: this
+        # return len(removed)
+        return 0
 
 
 
