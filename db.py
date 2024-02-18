@@ -168,6 +168,7 @@ def create_track_tags_reference(track_uid:str, track_tags:List[int]) -> int:
     with Session(get_engine()) as session:
         stmt = pg.insert(TrackTagsReference).values(tag_refs).on_conflict_do_nothing()
         session.execute(stmt)
+        session.commit()
     return len(track_tags)
 
 def get_track_by_date(date:datetime) -> Track:
