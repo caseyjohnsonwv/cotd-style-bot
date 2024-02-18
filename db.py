@@ -1,6 +1,7 @@
 import env
 from sqlalchemy import create_engine, Engine, ForeignKey
 from sqlalchemy import text as RAW_SQL
+from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.orm.session import Session
 
@@ -30,14 +31,14 @@ class Style(Base):
         return f"<<Style {self.name} ({self.id})>>"
     
 def populate_style_table() -> int:
-    styles = [Style(id=k, name=v) for k,v in env.TMX_MAP_TAGS.items()]
     with Session(get_engine(echo=False)) as session:
-        session.execute(RAW_SQL(f"TRUNCATE TABLE {Style.__tablename__};"))
+        for id,name in env.TMX_MAP_TAGS.items():
+            session.execute(
+                pg.insert(Style).values(id=id, name=name).on_conflict_do_update()
+            )
         session.commit()
-        session.add_all(styles)
-        session.commit()
-    return len(styles)
-
+        res = session.query(Style.id).count()
+    return res
 
 
 class Subscription(Base):
@@ -55,9 +56,10 @@ def create_subscription(guild_id:int, channel_id:int, role_id:int, style_name:st
     with Session(get_engine(echo=False)) as session:
         style_id = session.execute(stmt).scalar_one()
     # insert subscription into table
-    sub = Subscription(guild_id=guild_id, channel_id=channel_id, role_id=role_id, style_id=style_id)
     with Session(get_engine(echo=False)) as session:
-        session.add(sub)
+        session.execute(
+            pg.insert(Subscription).values(guild_id=guild_id, channel_id=channel_id, role_id=role_id, style_id=style_id)
+        )
         session.commit()
         res = session.get_one(Subscription, {'guild_id':guild_id, 'channel_id':channel_id, 'role_id':role_id, 'style_id':style_id})
     # return newly created subscription's autoincremented id
