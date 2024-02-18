@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List
 from sqlalchemy import create_engine, Engine, Row
-from sqlalchemy import BigInteger, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import BigInteger, DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy import text as RAW_SQL, or_ as SQL_OR, func as F
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -191,7 +191,7 @@ def get_notification_payloads() -> List[Row]:
             Track.author,
             Track.author_time,
             Track.thumbnail_url,
-            F.array_agg(Style.name, type_=pg.ARRAY(str)).label('track_tags')
+            F.array_agg(Style.name, type_=pg.ARRAY(String)).label('track_tags')
         ) \
         .where(Track.date == current_date) \
         .where(TrackTagsReference.track_uid == Track.uid) \
