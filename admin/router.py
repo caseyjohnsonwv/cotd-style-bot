@@ -45,7 +45,7 @@ class DatabaseRefreshBody(AdminBody):
     suppress_notifications:bool | None = True
 
 @router.post('/database/refresh')
-def database_refresh(body:AdminBody):
+def database_refresh(body:DatabaseRefreshBody):
     if body.admin_key != env.ADMIN_KEY:
         raise HTTPException(status_code=HTTPStatusCode.HTTP_401_UNAUTHORIZED, detail='Invalid admin key')
     jobs.refresh_job(suppress_notifications=DatabaseRefreshBody.suppress_notifications)
