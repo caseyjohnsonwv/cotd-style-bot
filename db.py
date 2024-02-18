@@ -73,3 +73,15 @@ def create_subscription(guild_id:int, channel_id:int, role_id:int, style_name:st
         session.commit()
     # return newly created subscription's autoincremented id
     return sub_id
+
+def delete_subscription(guild_id:int, style_name:str) -> bool:
+    with Session(get_engine(echo=False)) as session:
+        stmt = session.query(Subscription, Style) \
+        .where(Subscription.style_id == Style.id) \
+        .where(Subscription.guild_id == guild_id) \
+        .where(Style.name.ilike(style_name))
+        res = session.execute(stmt).first()
+        if res:
+            session.delete(res)
+            session.commit()
+    return res is not None
