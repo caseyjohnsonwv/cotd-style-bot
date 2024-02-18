@@ -1,8 +1,9 @@
 from datetime import datetime
+import json
 from typing import List
 from sqlalchemy import create_engine, Engine, Row
 from sqlalchemy import BigInteger, DateTime, ForeignKey, String, UniqueConstraint
-from sqlalchemy import text as RAW_SQL, or_ as SQL_OR, func as F
+from sqlalchemy import text as RAW_SQL, or_ as SQL_OR, and_ as SQL_AND, func as F
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.orm.session import Session
@@ -42,7 +43,11 @@ class Style(Base):
         return f"<<Style {self.name} ({self.id})>>"
     
 def populate_style_table() -> int:
-    styles = [{'id':id, 'name':name} for id,name in env.TMX_MAP_TAGS.items()]
+    # load global map styles scraped from TMX
+    with open('dat/styles.json', 'r') as f:
+        j = dict(json.load(f))
+    styles = [{'id':int(k), 'name':v} for k,v in j.items()]
+    # dump to database table
     stmt = pg.insert(Style).values(styles)
     stmt = stmt.on_conflict_do_update(
         index_elements=[Style.id],
@@ -93,12 +98,15 @@ def create_subscription(guild_id:int, channel_id:int, role_id:int, style_name:st
     # return newly created subscription's autoincremented id
     return sub_id
 
-def delete_subscription(guild_id:int, style_name:str) -> bool:
+def delete_subscription(guild_id:int, style_name:str=None, role_id:int=None) -> bool:
     with Session(get_engine()) as session:
+        style_like = session.query(Subscription).where(Style.name.ilike(style_name))
+        role_equals = session.query(Subscription).where(Subscription.role_id == role_id)
+        where_clauses = SQL_AND([style_like, role_equals]) if style_name and role_id else SQL_OR([style_like, role_equals])
         res = session.query(Subscription) \
             .where(Subscription.style_id == Style.id) \
             .where(Subscription.guild_id == guild_id) \
-            .where(Style.name.ilike(style_name)) \
+            .where(where_clauses) \
             .first()
         if res:
             session.delete(res)
