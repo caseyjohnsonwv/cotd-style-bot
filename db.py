@@ -34,7 +34,7 @@ def populate_style_table() -> int:
     with Session(get_engine(echo=False)) as session:
         for id,name in env.TMX_MAP_TAGS.items():
             session.execute(
-                pg.insert(Style).values(id=id, name=name).on_conflict_do_update(set_={Style.name:name})
+                pg.insert(Style).values(id=id, name=name).on_conflict_do_update(index_elements=[Style.id])
             )
         session.commit()
         res = session.query(Style.id).count()
