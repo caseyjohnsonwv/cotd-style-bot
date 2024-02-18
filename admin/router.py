@@ -41,7 +41,7 @@ Admin route where tables can be truncated (and reloaded, if applicable) manually
 Disallowed in production. This route is for development and debugging only.
 """
 class ResetBody(AdminBody):
-    table_name:str
+    pass
 
 @router.post('/reset')
 def reset(body:ResetBody):
