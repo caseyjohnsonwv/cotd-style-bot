@@ -106,7 +106,7 @@ async def interaction(req:Request):
 
 
     elif command == Command.SHOW:
-        result = Command.show()
+        result = Command.show(guild_id=guild_id)
         if len(result) == 0:
             fields = [{'name' : 'Failure!', 'value' : "No subscriptions found for this server."}]
         else:
