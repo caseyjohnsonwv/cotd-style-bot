@@ -1,6 +1,6 @@
 import itertools
 import json
-import uuid
+from typing import List
 from fastapi import APIRouter, Request, Response, HTTPException, status as HTTPStatusCode
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
@@ -34,8 +34,9 @@ class Command:
 
 
     SHOW = 'show'
-    def show():
-        pass
+    def show(guild_id:int) -> List[dict]:
+        results = db.get_subscriptions_for_guild(guild_id)
+        return [{'channel_id':r.channel_id, 'role_id':r.role_id, 'style_name':r.style_name} for r in results]
     
 
     SUBSCRIBE = 'subscribe'
@@ -105,8 +106,12 @@ async def interaction(req:Request):
 
 
     elif command == Command.SHOW:
-        subscriptions = Command.show()
-        message = "Your command worked, but it hasn't been implemented yet"
+        result = Command.show()
+        if len(result) == 0:
+            fields = [{'name' : 'Failure!', 'value' : "No subscriptions found for this server."}]
+        else:
+            subscription_strings = [f"{r['style_name'].upper()} -> <#{channel_id}> (<@&{r['role_id']}>)" for r in result]
+            fields = [{'name' : f"Found {len(subscription_strings)} subscriptions:", 'value' : '\n'.join(subscription_strings)}]
     
 
     elif command == Command.SUBSCRIBE:
