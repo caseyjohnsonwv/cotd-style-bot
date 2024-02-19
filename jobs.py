@@ -70,7 +70,7 @@ def refresh_job(suppress_notifications:bool=False):
     resp = requests.get(url, headers=env.FETCH_HEADERS)
     print(f"trackmania.io: {resp.status_code}")
     tmio_json = resp.json()
-    map_uid = tmio_json['days'][-2]['map']['mapUid']
+    map_uid = tmio_json['days'][-1]['map']['mapUid']
     print(f"totd map_uid: {map_uid}")
 
     # retrieve same map from tmx
