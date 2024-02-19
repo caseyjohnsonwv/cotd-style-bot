@@ -108,11 +108,12 @@ def delete_subscription(guild_id:int, style_name:str=None, role_id:int=None) -> 
             res = res.where(Style.name.ilike(style_name))
         if role_id:
             res = res.where(Subscription.role_id == role_id)
-        res = res.first()
-        if res:
-            session.delete(res)
+        res = res.all()
+        if len(res) > 0:
+            for r in r:
+                session.delete(r)
             session.commit()
-    return res is not None
+    return len(res) > 0
 
 def get_subscriptions_for_styles(style_names:List[str]) -> List[Subscription]:
     with Session(get_engine()) as session:
