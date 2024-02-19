@@ -75,7 +75,7 @@ class Subscription(Base):
     role_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     style_id: Mapped[int] = mapped_column(ForeignKey('style.id'))
     __table_args__ = (
-        UniqueConstraint('guild_id', 'style_id', 'role_id')
+        UniqueConstraint('guild_id', 'style_id', 'role_id'),
     )
     def __repr__(self):
         return f"<<Subscription {self.id} for style {self.style_id}>>"
