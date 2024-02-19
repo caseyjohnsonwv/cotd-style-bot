@@ -146,11 +146,11 @@ async def interaction(req:Request):
             print(f"Removed {style_name} subscription for server {guild_id}: {is_removed}")
             if is_removed:
                 fields = [
-                    {'name' : 'Success!', 'value' : f"Unsubscribed from {style_name.upper()}."},
+                    {'name' : 'Success!', 'value' : f"Unsubscribed from notifications."},
                 ]
             else:
                 fields = [
-                    {'name' : 'Failure!', 'value' : f"Subscription not found for {style_name.upper()} - nothing to delete."},
+                    {'name' : 'Failure!', 'value' : f"Subscription not found - nothing to delete."},
                 ]
 
 
