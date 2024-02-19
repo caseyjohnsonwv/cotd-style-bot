@@ -110,7 +110,7 @@ async def interaction(req:Request):
         if len(result) == 0:
             fields = [{'name' : 'Failure!', 'value' : "No subscriptions found for this server."}]
         else:
-            subscription_strings = [f"{n+1}. {r['style_name'].upper()} -> <#{channel_id}> (<@&{r['role_id']}>)" for n,r in enumerate(result)]
+            subscription_strings = [f"{n+1}. {r['style_name'].upper()} -> <#{r['channel_id']}> (<@&{r['role_id']}>)" for n,r in enumerate(result)]
             fields = [{'name' : f"Found {len(subscription_strings)} Subscription(s):", 'value' : '\n'.join(subscription_strings)}]
     
 
