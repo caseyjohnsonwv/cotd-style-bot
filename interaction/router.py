@@ -143,8 +143,8 @@ async def interaction(req:Request):
         # other error handling goes here if needed
         else:
             is_removed = Command.unsubscribe(guild_id=guild_id, style_name=style_name, role_id=role_id)
-            print(f"Removed style {style_name} / role {role_id} subscription for server {guild_id}: {is_removed}")
             msg = style_name or f"<@&{role_id}>"
+            msg = msg.upper()
             if is_removed:
                 fields = [
                     {'name' : 'Success!', 'value' : f"Unsubscribed from {msg} notifications."},
