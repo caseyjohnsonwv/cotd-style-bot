@@ -1,9 +1,9 @@
 apscheduler
 discord-interactions
 fastapi
+psycopg2
 pynacl
 python-dotenv
-redis
 requests
-tinydb
+sqlalchemy
 uvicorn

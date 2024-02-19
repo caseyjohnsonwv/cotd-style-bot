@@ -37,7 +37,13 @@
                 "name": "style",
                 "description": "Map style (case insensitive)",
                 "type": 3,
-                "required": true
+                "required": false
+            },
+            {
+                "name": "role",
+                "description": "Role to unsubscribe",
+                "type": 8,
+                "required": false
             }
         ]
     },

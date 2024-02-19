@@ -1,11 +1,10 @@
 import itertools
 import json
-import uuid
+from typing import List
 from fastapi import APIRouter, Request, Response, HTTPException, status as HTTPStatusCode
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
-from tinydb import where
-from db import subs_table
+import db
 import env
 
 
@@ -35,41 +34,32 @@ class Command:
 
 
     SHOW = 'show'
-    def show():
-        pass
+    def show(guild_id:int) -> List[dict]:
+        results = db.get_subscriptions_for_guild(guild_id)
+        return [{'channel_id':r.channel_id, 'role_id':r.role_id, 'style_name':r.style_name} for r in results]
     
 
     SUBSCRIBE = 'subscribe'
-    def subscribe(guild_id:int, channel_id:int, role_id:int, style:str) -> str:
-        subscription_id = str(uuid.uuid4())
-        j = {
-            'subscription_id' : subscription_id,
-            'guild_id' : guild_id,
-            'channel_id' : channel_id,
-            'role_id' : role_id,
-            'style' : style.lower(),
-        }
-        # enforce uniqueness for combination guild_id + style
-        subs_table.remove((where('guild_id') == j['guild_id']) & (where('style') == j['style']))
-        subs_table.insert(j)
+    def subscribe(guild_id:int, channel_id:int, role_id:int, style_name:str) -> int:
+        subscription_id = db.create_subscription(
+            guild_id=guild_id,
+            channel_id=channel_id,
+            role_id=role_id,
+            style_name=style_name
+        )
         return subscription_id
 
 
     STYLES = 'styles'
     def styles():
-        results = list(env.TMX_MAP_TAGS.values())
-        results.sort()
-        return results
+        return db.get_all_style_names()
     
 
     UNSUBSCRIBE = 'unsubscribe'
-    def unsubscribe(guild_id:int, style:str) -> int:
-        j = {
-            'guild_id' : guild_id,
-            'style' : style.lower(),
-        }
-        removed = subs_table.remove((where('guild_id') == j['guild_id']) & (where('style') == j['style']))
-        return len(removed)
+    def unsubscribe(guild_id:int, style_name:str=None, role_id:int=None) -> bool:
+        if not style_name and not role_id:
+            raise Exception('At minimum, one of Style or Role is required')
+        return db.delete_subscription(guild_id=guild_id, style_name=style_name, role_id=role_id)
 
 
 
@@ -109,37 +99,39 @@ async def interaction(req:Request):
             name, value = option['name'], option['value']
             options[name] = value
 
+
     if command == Command.HELP:
         help_text = Command.help()
         message = "Your command worked, but it hasn't been implemented yet"
 
+
     elif command == Command.SHOW:
-        subscriptions = Command.show()
-        message = "Your command worked, but it hasn't been implemented yet"
+        result = Command.show(guild_id=guild_id)
+        if len(result) == 0:
+            fields = [{'name' : 'Failure!', 'value' : "No subscriptions found for this server."}]
+        else:
+            subscription_strings = [f"{n+1}. {r['style_name'].upper()} -> <#{r['channel_id']}> (<@&{r['role_id']}>)" for n,r in enumerate(result)]
+            fields = [{'name' : f"Found {len(subscription_strings)} Subscription(s):", 'value' : '\n'.join(subscription_strings)}]
     
+
     elif command == Command.SUBSCRIBE:
-        role_id, style = options.get('role'), options.get('style')
+        role_id, style_name = options.get('role'), options.get('style')
         # enforce role & style requirement
-        if not role_id or not style:
+        if not role_id or not style_name:
             raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Role and Style are required')
-        # enforce style validity
-        style = style.strip().lower()
-        if style not in [s.lower() for s in env.TMX_MAP_TAGS.values()]:
-            fields = [
-                {'name' : 'Failure!', 'value' : f'"{style.upper()}" is not a valid map style! Use /styles to see all available options.'}
-            ]
         # any additional error scenarios would go here
         else:
-            subscription_id = Command.subscribe(guild_id, channel_id, role_id, style)
+            subscription_id = Command.subscribe(guild_id=guild_id, channel_id=channel_id, role_id=role_id, style_name=style_name)
             print(f"Created subscription {subscription_id} for server {guild_id}")
             fields = [
-                {'name' : 'Success!', 'value' : f"You are now subscribed to {style.upper()}! I will mention <@&{role_id}> here in <#{channel_id}> when this style becomes Cup of the Day."},
-                {'name' : 'Reminder:', 'value' : f"If you have previously configured another role or channel for this style, the previous configuration has been overwritten."}
+                {'name' : 'Success!', 'value' : f"You are now subscribed to {style_name.upper()}! I will mention <@&{role_id}> here in <#{channel_id}> when this style becomes Cup of the Day."},
+                {'name' : 'Reminder:', 'value' : f"If you have previously configured another channel with this role and style, the previous channel will no longer be notified."}
             ]
+
 
     elif command == Command.STYLES:
         fields = [
-            {'name': 'Valid map styles according to TMX:', 'value': '(These are case insensitive with /subscribe and /unsubscribe)'}
+            {'name': 'Valid map styles according to TMX:', 'value': '(These are case insensitive.)'}
         ]
         styles_list = Command.styles()
         styles_fmt = [f"{i+1}. {s}" for i,s in enumerate(styles_list)]
@@ -147,28 +139,26 @@ async def interaction(req:Request):
         for col in itertools.batched(styles_fmt, sum(divmod(len(styles_fmt), 3))):
             fields.append({'name':'', 'value': '\n'.join(col), 'inline':True})
 
+
     elif command == Command.UNSUBSCRIBE:
-        style = options.get('style')
-        if not style:
-            raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Style is required')
-        # enforce style validity
-        style = style.strip().lower()
-        if style not in [s.lower() for s in env.TMX_MAP_TAGS.values()]:
-            fields = [
-                {'name' : 'Failure!', 'value' : f'"{style.upper()}" is not a valid map style! Use /styles to see all available options.'},
-            ]
+        style_name = options.get('style')
+        role_id = options.get('role')
+        if not style_name and not role_id:
+            raise HTTPException(status_code=HTTPStatusCode.HTTP_422_UNPROCESSABLE_ENTITY, detail='Style and/or Role is required')
         # other error handling goes here if needed
         else:
-            num_removed = Command.unsubscribe(guild_id, style)
-            print(f"Removed {num_removed} subscriptions for server {guild_id}")
-            if num_removed == 0:
+            is_removed = Command.unsubscribe(guild_id=guild_id, style_name=style_name, role_id=role_id)
+            msg = style_name or f"<@&{role_id}>"
+            msg = msg.upper()
+            if is_removed:
                 fields = [
-                    {'name' : 'Failure!', 'value' : f"Subscription not found for {style.upper()} - nothing to delete."},
+                    {'name' : 'Success!', 'value' : f"Unsubscribed from {msg} notifications."},
                 ]
             else:
                 fields = [
-                    {'name' : 'Success!', 'value' : f"Unsubscribed from {style.upper()}."},
+                    {'name' : 'Failure!', 'value' : f"Subscription not found for {msg} - nothing to delete."},
                 ]
+
 
     # preserve legacy functionality while building embeds
     if len(fields) > 0:
@@ -177,6 +167,7 @@ async def interaction(req:Request):
         content['data']['content'] = message
         del content['data']['embeds']
     print(content)
+    
 
     # format into json and return
     return Response(content=json.dumps(content), status_code=HTTPStatusCode.HTTP_200_OK, media_type='application/json')
