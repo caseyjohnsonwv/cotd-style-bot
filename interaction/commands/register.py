@@ -1,7 +1,6 @@
 import json
-import time
 import requests
-from app import DISCORD_HEADERS
+from env import DISCORD_HEADERS
 import env
 
 def register_commands():
