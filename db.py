@@ -105,9 +105,9 @@ def delete_subscription(guild_id:int, style_name:str=None, role_id:int=None) -> 
             .where(Subscription.style_id == Style.id) \
             .where(Subscription.guild_id == guild_id)
         if style_name:
-            res.where(Style.name.ilike(style_name))
+            res = res.where(Style.name.ilike(style_name))
         if role_id:
-            res.where(Subscription.role_id == role_id)
+            res = res.where(Subscription.role_id == role_id)
         res = res.first()
         print(res.style_id, res.role_id)
         if res:
