@@ -103,7 +103,7 @@ def delete_subscription(guild_id:int, style_name:str=None, role_id:int=None) -> 
             res = res.where(Subscription.role_id == role_id)
         res = res.all()
         if len(res) > 0:
-            for r in r:
+            for r in res:
                 session.delete(r)
             session.commit()
     return len(res) > 0
@@ -126,7 +126,7 @@ def get_subscriptions_for_guild(guild_id:int) -> List[Row]:
             ) \
             .where(Subscription.guild_id == guild_id) \
             .where(Subscription.style_id == Style.id) \
-            .order_by(Style.name) \
+            .order_by(Style.name, Subscription.role_id, Subscription.channel_id) \
             .all()
     return res
 
