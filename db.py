@@ -109,7 +109,6 @@ def delete_subscription(guild_id:int, style_name:str=None, role_id:int=None) -> 
         if role_id:
             res = res.where(Subscription.role_id == role_id)
         res = res.first()
-        print(res.style_id, res.role_id)
         if res:
             session.delete(res)
             session.commit()
