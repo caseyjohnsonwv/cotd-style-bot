@@ -131,7 +131,7 @@ async def interaction(req:Request):
 
     elif command == Command.STYLES:
         fields = [
-            {'name': 'Valid map styles according to TMX:', 'value': '(These are case insensitive with /subscribe and /unsubscribe)'}
+            {'name': 'Valid map styles according to TMX:', 'value': '(These are case insensitive.)'}
         ]
         styles_list = Command.styles()
         styles_fmt = [f"{i+1}. {s}" for i,s in enumerate(styles_list)]
