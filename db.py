@@ -74,9 +74,6 @@ class Subscription(Base):
     channel_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     role_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     style_id: Mapped[int] = mapped_column(ForeignKey('style.id'))
-    __table_args__ = (
-        UniqueConstraint('guild_id', 'style_id'),
-    )
     def __repr__(self):
         return f"<<Subscription {self.id} for style {self.style_id}>>"
 
@@ -89,10 +86,6 @@ def create_subscription(guild_id:int, channel_id:int, role_id:int, style_name:st
     # insert subscription into table
     with Session(get_engine()) as session:
         stmt = pg.insert(Subscription).values(guild_id=guild_id, channel_id=channel_id, role_id=role_id, style_id=style_id)
-        stmt = stmt.on_conflict_do_update(
-            index_elements=[Subscription.guild_id, Subscription.style_id],
-            set_={Subscription.channel_id: channel_id, Subscription.role_id: role_id}
-        )
         sub_id = session.execute(stmt)
         session.commit()
     # return newly created subscription's autoincremented id
