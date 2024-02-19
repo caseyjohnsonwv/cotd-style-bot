@@ -132,6 +132,7 @@ def get_subscriptions_for_guild(guild_id:int) -> List[Row]:
             ) \
             .where(Subscription.guild_id == guild_id) \
             .where(Subscription.style_id == Style.id) \
+            .order_by(Style.name) \
             .all()
     return res
 
