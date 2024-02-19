@@ -39,6 +39,7 @@
     "22": "Scenery",
     "36": "Signature",
     "19": "Slow Motion",
+    "50": "SnowCar",
     "29": "SpeedDrift",
     "12": "SpeedFun",
     "7": "SpeedTech",
@@ -46,6 +47,9 @@
     "3": "Tech",
     "32": "Transitional",
     "10": "Trial",
+    "53": "Turtle",
+    "52": "Underwater",
     "38": "Water",
+    "51": "Wood",
     "11": "ZrT"
 }
