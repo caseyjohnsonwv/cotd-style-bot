@@ -123,6 +123,18 @@ def get_subscriptions_for_styles(style_names:List[str]) -> List[Subscription]:
             .all()
     return res
 
+def get_subscriptions_for_guild(guild_id:int) -> List[Row]:
+    with Session(get_engine()) as session:
+        res = session.query(
+                Subscription.channel_id.label('channel_id'),
+                Subscription.role_id.label('role_id'),
+                Style.name.label('style_name'),
+            ) \
+            .where(Subscription.guild_id == guild_id) \
+            .where(Subscription.style_id == Style.id) \
+            .all()
+    return res
+
 
 
 class Track(Base):
